@@ -28,6 +28,54 @@
 
 ---
 
+## Patterns and Conventions
+
+### Shared Types Package (@once/shared)
+All validation schemas and types shared between frontend and backend live in `packages/shared`:
+- `src/schemas/common.ts` — Enums, traits, shared primitives
+- `src/schemas/index.ts` — Story schemas (createStorySchema)
+- `src/schemas/vault.ts` — Vault character schemas (TODO)
+- `src/types/api.ts` — API response types
+- `src/errors.ts` — Centralized error codes with status mapping
+
+### Trait System (Hybrid Approach)
+Traits use a hybrid model:
+- `suggestedTraits` array provides UI hints (clickable suggestions)
+- Validation allows any string (max 100 chars, max 5 traits)
+- Users can pick suggestions OR enter custom traits
+- Located in `packages/shared/src/schemas/common.ts`
+
+### Error Code System
+Centralized error codes in `packages/shared/src/errors.ts`:
+- Each code maps to HTTP status and default message
+- API uses `error(c, "CODE")` or `error(c, "CODE", "custom message")`
+- Type-safe: ErrorCode type ensures only valid codes are used
+- Frontend can use same codes for consistent error handling
+
+### Response Helpers
+`apps/api/src/lib/response.ts` provides:
+- `success(c, data, status?)` — Wrap successful responses
+- `error(c, code, message?)` — Wrap error responses
+- `paginated(c, data, meta)` — Wrap paginated lists
+
+### Database Exports
+`packages/database/src/index.ts` exports:
+- `db` — Drizzle client
+- All schema tables and relations
+- `eq`, `desc` and other Drizzle operators
+
+---
+
+## New Ideas (In Progress)
+
+### Codex as Wishlist
+The Codex isn't just a record — it's also a planting ground. Users can add entries for things that don't exist yet: characters, locations, items. The system weaves them in when narratively appropriate. This turns passive recording into active world-building.
+
+### Echo Visibility  
+Echoes are invisible by default. The magic is surprise. "Director's commentary" mode for replays can reveal pending echoes, but the primary experience keeps them hidden.
+
+---
+
 ## Task List
 
 ### Phase 1: Project Foundation
@@ -58,63 +106,61 @@
 - [x] Create story upvotes table
 - [x] Create story suggestions table
 - [x] Define all table relations
-- [ ] Generate initial migration
-- [ ] Test migration against PostgreSQL
-- [ ] Create seed scripts for development
+- [x] Generate initial migration
+- [x] Push to PostgreSQL
 
 ### Phase 3: API Layer (Hono)
 
-- [ ] Create API package
-- [ ] Setup Hono with base configuration
-- [ ] Configure CORS middleware
-- [ ] Setup request logging middleware
-- [ ] Setup error handling middleware
-- [ ] Setup request ID middleware
-- [ ] Create Zod schemas for requests
-- [ ] Implement validation middleware
-- [ ] Define response envelope
+- [x] Create API package (apps/api)
+- [x] Setup Hono with base configuration
+- [x] Configure CORS middleware
+- [x] Setup request logging middleware (logger)
+- [x] Setup error handling middleware
+- [x] Create shared Zod schemas (@once/shared)
+- [x] Create response helpers (success, error, paginated)
+- [x] Create error code system
 
 ### Phase 4: Core API Endpoints
 
-- [ ] GET /health
-- [ ] POST /stories
-- [ ] GET /stories
-- [ ] GET /stories/:id
-- [ ] DELETE /stories/:id
-- [ ] POST /stories/:id/continue
-- [ ] POST /stories/:id/fork
-- [ ] GET /stories/:id/scenes
-- [ ] GET /stories/:id/codex
-- [ ] GET /stories/:id/echoes
+- [x] GET /health
+- [x] POST /api/stories
+- [x] GET /api/stories
+- [x] GET /api/stories/:id
+- [x] DELETE /api/stories/:id
+- [x] GET /api/stories/:id/scenes
+- [x] GET /api/stories/:id/codex
+- [x] GET /api/stories/:id/echoes
+- [ ] POST /api/stories/:id/continue
+- [ ] POST /api/stories/:id/fork
 
 ### Phase 5: Protagonist Endpoints
 
-- [ ] GET /stories/:id/protagonists
-- [ ] POST /stories/:id/protagonists
-- [ ] PATCH /stories/:id/protagonists/:pid
-- [ ] POST /stories/:id/protagonists/:pid/activate
+- [ ] GET /api/stories/:id/protagonists
+- [ ] POST /api/stories/:id/protagonists
+- [ ] PATCH /api/stories/:id/protagonists/:pid
+- [ ] POST /api/stories/:id/protagonists/:pid/activate
 
 ### Phase 6: Character Vault Endpoints
 
-- [ ] GET /vault
-- [ ] POST /vault
-- [ ] GET /vault/:id
-- [ ] PATCH /vault/:id
-- [ ] DELETE /vault/:id
-- [ ] POST /vault/from-protagonist
+- [x] GET /api/vault
+- [x] POST /api/vault
+- [x] GET /api/vault/:id
+- [x] PATCH /api/vault/:id
+- [x] DELETE /api/vault/:id
+- [x] POST /api/vault/from-protagonist/:id
 
 ### Phase 7: LLM Integration
 
-- [ ] Install Vercel AI SDK
-- [ ] Configure OpenAI provider
-- [ ] Create LLM service abstraction
-- [ ] Implement story initialization
-- [ ] Implement story continuation
-- [ ] Define response schemas
-- [ ] Implement SSE streaming
+- [x] Install OpenAI SDK (using Responses API)
+- [x] Create LLM service abstraction (`services/llm.ts`)
+- [x] Create system prompt (`prompts/system.ts`)
+- [x] Create initialization prompt (`prompts/initialize.ts`)
+- [x] Define response schemas (`shared/schemas/llm.ts`)
+- [x] Implement story initialization (POST /api/stories generates opening scene)
+- [ ] Implement story continuation (POST /api/stories/:id/continue)
+- [ ] Implement SSE streaming for responses
 - [ ] Add retry logic
 - [ ] Add timeout handling
-- [ ] Implement token counting
 
 ### Phase 8: Prompt System
 
@@ -126,141 +172,70 @@
 - [ ] Add narrative stance variations
 - [ ] Add story mode variations
 
-### Phase 9: Memory System (Mem0)
+### Phase 9-21: (Unchanged)
 
-- [ ] Configure Mem0 with Neo4j and Qdrant
-- [ ] Create memory service wrapper
-- [ ] Implement store operation
-- [ ] Implement search operation
-- [ ] Add user isolation
-- [ ] Add story isolation
-- [ ] Implement relevance scoring
-- [ ] Add health checks
-
-### Phase 10: Echo System
-
-- [ ] Implement echo creation
-- [ ] Implement trigger evaluation
-- [ ] Implement echo resolution
-- [ ] Handle echo expiration
-
-### Phase 11: Deferred Characters
-
-- [ ] Implement creation
-- [ ] Implement trigger evaluation
-- [ ] Implement introduction flow
-- [ ] Link to scenes
-
-### Phase 12: Codex System
-
-- [ ] Implement entity extraction
-- [ ] Implement entry creation
-- [ ] Implement entry updates
-- [ ] Respect user-edited entries
-- [ ] Inject into context
-
-### Phase 13: Caching Layer
-
-- [ ] Setup Redis connection
-- [ ] Cache story metadata
-- [ ] Cache recent scenes
-- [ ] Cache session data
-- [ ] Implement invalidation
-- [ ] Add ETag support
-- [ ] Add Cache-Control headers
-
-### Phase 14: Rate Limiting
-
-- [ ] Setup Upstash Ratelimit
-- [ ] Per-IP limiting
-- [ ] Per-user limiting
-- [ ] Define endpoint limits
-- [ ] Add X-RateLimit headers
-
-### Phase 15: Authentication
-
-- [ ] Install Better Auth
-- [ ] Setup Redis sessions
-- [ ] Create session middleware
-- [ ] POST /auth/register
-- [ ] POST /auth/login
-- [ ] POST /auth/logout
-- [ ] GET /auth/me
-- [ ] Protect routes
-
-### Phase 16: Publishing and Community
-
-- [ ] PATCH /stories/:id/visibility
-- [ ] GET /stories/public
-- [ ] POST /stories/:id/upvote
-- [ ] DELETE /stories/:id/upvote
-- [ ] POST /stories/:id/suggestions
-- [ ] GET /stories/:id/suggestions
-- [ ] PATCH /suggestions/:id
-
-### Phase 17: Observability
-
-- [ ] Install Pino
-- [ ] Configure log levels
-- [ ] Request/response logging
-- [ ] LLM call logging
-- [ ] Error tracking
-- [ ] Alerting
-
-### Phase 18: Testing
-
-- [ ] Setup Vitest
-- [ ] Test LLM service
-- [ ] Test database operations
-- [ ] Test API endpoints
-- [ ] Test validation schemas
-- [ ] Load testing
-
-### Phase 19: Frontend Integration
-
-- [ ] SSE consumption
-- [ ] Streamdown integration
-- [ ] Story creation flow
-- [ ] Story continuation UI
-- [ ] Protagonist state display
-- [ ] Codex viewer
-- [ ] Vault management
-- [ ] Fork visualization
-- [ ] Publishing flow
-- [ ] Community discovery
-
-### Phase 20: Deployment
-
-- [ ] Create Dockerfile
-- [ ] Environment configuration
-- [ ] Docker Compose for local
-- [ ] CI/CD pipeline
-- [ ] Database hosting
-- [ ] Redis hosting
-- [ ] Neo4j hosting
-- [ ] Qdrant hosting
-- [ ] Production deployment
-- [ ] Health monitoring
-
-### Phase 21: Security Hardening
-
-- [ ] Input sanitization
-- [ ] SQL injection prevention
-- [ ] XSS prevention
-- [ ] CORS review
-- [ ] Secrets management
-- [ ] Security headers
-- [ ] Request size limits
-- [ ] Timeout limits
-- [ ] API versioning
+See full list in previous version.
 
 ---
 
 ## Current Status
 
-**Completed**: Phase 1 (partial), Phase 2 (schema complete)
+**Completed**: 
+- Phase 1 (foundation)
+- Phase 2 (database schema, migrations pushed)
+- Phase 3 (API layer with Hono, middleware, error system)
+- Phase 4 (stories CRUD + sub-resources)
+- Phase 6 (vault routes - all done)
 
-**Next**: Generate migrations, test against PostgreSQL
+**In Progress**:
+- Phase 7 (LLM integration - story loop)
+
+**Next**: 
+- Build LLM service layer
+- Create prompt system
+- Wire opening scene generation into POST /api/stories
+- Build story continuation endpoint
+
+---
+
+## File Structure
+
+```
+once/
+├── apps/
+│   └── api/
+│       ├── src/
+│       │   ├── index.ts          (main Hono app)
+│       │   ├── routes/
+│       │   │   ├── stories.ts    (story CRUD)
+│       │   │   └── vault.ts      (in progress)
+│       │   ├── lib/
+│       │   │   └── response.ts   (response helpers)
+│       │   ├── services/         (LLM, memory - TODO)
+│       │   └── prompts/          (prompt templates - TODO)
+│       ├── package.json
+│       └── tsconfig.json
+├── packages/
+│   ├── database/
+│   │   ├── src/
+│   │   │   ├── index.ts          (db client, exports)
+│   │   │   └── schema.ts         (all tables, relations)
+│   │   ├── drizzle/              (migrations)
+│   │   └── drizzle.config.ts
+│   └── shared/
+│       ├── src/
+│       │   ├── index.ts          (re-exports)
+│       │   ├── errors.ts         (error codes)
+│       │   ├── schemas/
+│       │   │   ├── index.ts      (story schemas)
+│       │   │   ├── common.ts     (enums, traits)
+│       │   │   └── vault.ts      (TODO)
+│       │   └── types/
+│       │       ├── index.ts
+│       │       └── api.ts        (ApiResponse type)
+│       └── package.json
+└── flow.md                       (product vision)
+```
 
 ---
 
@@ -268,6 +243,10 @@
 
 - Vault character limits: enforce at application layer (free: 5, premium: unlimited)
 - Auth tables will be generated by Better Auth, not manually defined
+- Traits are hybrid: suggestions provided, but custom allowed
+- All validation schemas go in @once/shared for frontend/backend consistency
+- Error codes centralized with status mapping for type safety
+- Server tested and running on port 8080
 
 ---
 

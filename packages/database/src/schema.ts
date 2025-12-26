@@ -160,6 +160,8 @@ export const codexEntries = pgTable("codex_entries", {
     summary: text("summary").notNull(),
 
     // Relationships and context
+
+    // without .$type<number[]>() , ts will infer its type as any or unknown , it's for ts so it can infer correct type
     relatedEntries: json("related_entries").$type<number[]>().default([]),
     firstMentionedSceneId: integer("first_mentioned_scene_id"),
     lastUpdatedSceneId: integer("last_updated_scene_id"),
