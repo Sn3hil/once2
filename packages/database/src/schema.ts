@@ -41,6 +41,7 @@ export const stories = pgTable("stories", {
     forkedAtSceneId: integer("forked_at_scene_id"),
     visibility: storyVisibilityEnum("visibility").default("private").notNull(),
     upvotes: integer("upvotes").default(0).notNull(),
+    allowForking: boolean("allow_forking").default(false).notNull(),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

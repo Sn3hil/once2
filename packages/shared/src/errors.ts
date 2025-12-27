@@ -9,8 +9,9 @@ export const ERROR_CODES = {
     INVALID_TOKEN: { status: 401, message: "Invalid or expired token" },
 
     // Authorization errors (403)
-    FORBIDDEN: { status: 403, message: "Access denied" },
+    // FORBIDDEN: { status: 403, message: "Access denied" },
     NOT_OWNER: { status: 403, message: "You do not own this resource" },
+    FORBIDDEN: { status: 403, message: "You don't have permission to do this" },
 
     // Not found errors (404)
     NOT_FOUND: { status: 404, message: "Resource not found" },

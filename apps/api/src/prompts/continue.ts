@@ -20,6 +20,11 @@ interface ContinueContext {
     userAction: string;
     triggeredEchoes?: Array<{ description: string; }>;
     factualKnowledge?: string[];
+    introducedCharacters?: Array<{
+        name: string;
+        description?: string | null;
+        role?: string | null;
+    }>;
 }
 
 export function buildContinuePrompt(ctx: ContinueContext): string {
@@ -66,10 +71,25 @@ export function buildContinuePrompt(ctx: ContinueContext): string {
         `;
     }
 
+    let characterBlock = "";
+    if (ctx.introducedCharacters && ctx.introducedCharacters.length > 0) {
+        const chars = ctx.introducedCharacters.map(c =>
+            `- ${c.name}: ${c.description || "A mysterious figure"} (${c.role || "unknown role"})`
+        ).join("\n");
+        characterBlock = `
+            ## Characters to Introduce
+            The following characters should appear in this scene:
+            ${chars}
+            
+            Introduce them naturally through the narrative — don't just announce their arrival.
+        `;
+    }
+
     return `Continue the story based on the player's action.
         ${stateBlock}
         ${echoBlock}
         ${memoryBlock}
+        ${characterBlock}
 
         ## Recent Events
         ${recentContext || "This is the beginning of the story."}

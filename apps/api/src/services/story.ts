@@ -38,7 +38,12 @@ interface ContinueContext extends StoryContext {
     }>;
     userAction: string;
     triggeredEchoes: Array<{ description: string }>;
-    factualKnowledge: string[]
+    factualKnowledge: string[],
+    introducedCharacters?: Array<{
+        name: string;
+        description?: string | null;
+        role?: string | null;
+    }>;
 }
 
 export async function generateOpeningScene(ctx: InitializeContext) {
@@ -69,7 +74,8 @@ export async function generateContinuation(ctx: ContinueContext) {
         recentScenes: ctx.recentScenes,
         userAction: ctx.userAction,
         triggeredEchoes: ctx.triggeredEchoes,
-        factualKnowledge: ctx.factualKnowledge
+        factualKnowledge: ctx.factualKnowledge,
+        introducedCharacters: ctx.introducedCharacters
     });
 
     return generateStructured(

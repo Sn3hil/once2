@@ -51,3 +51,10 @@ export const codexExtractionSchema = z.object({
 
 export type CodexExtractionResponse = z.infer<typeof codexExtractionSchema>;
 export type EchoEvalResponse = z.infer<typeof echoEvalSchema>;
+
+export const deferredCharEvalSchema = z.object({
+    triggeredCharacterIds: z.array(z.number()).describe("IDs of deferred characters that should be introduced now"),
+    reasoning: z.string().optional().describe("Why these characters should appear"),
+});
+
+export type DeferredCharEvalResponse = z.infer<typeof deferredCharEvalSchema>;

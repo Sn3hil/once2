@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { db, eq, desc } from "@once/database";
+import { db, eq, desc, and } from "@once/database";
 import { stories, protagonists, scenes, codexEntries, echoes } from "@once/database/schema";
 import { success, error, paginated } from "@/lib/response";
 import { createStorySchema, openSceneSchema } from "@once/shared/schemas"
@@ -13,6 +13,7 @@ import { updateProtagonistState } from "@/services/protagonist";
 import { streamSSE } from "hono/streaming";
 import { fakeStream } from "@/lib/stream";
 import { searchMemory, storeMemory } from "@/services/memory";
+import { evaluateDeferredCharacters, markCharacterIntroduced } from "@/services/deferred";
 
 const storiesRouter = new Hono();
 
@@ -24,6 +25,36 @@ storiesRouter.get("/", async (c) => {
     })
 
     return success(c, userStories);
+});
+
+storiesRouter.get("/discover", async (c) => {
+    const page = Number(c.req.query("page") || "1");
+    const limit = Number(c.req.query("limit") || "20");
+    const offset = (page - 1) * limit;
+
+    const publicStories = await db.query.stories.findMany({
+        where: (stories, { and, eq }) => and(
+            eq(stories.visibility, "public"),
+            eq(stories.allowForking, true)
+        ),
+        orderBy: desc(stories.upvotes),
+        limit,
+        offset,
+        with: {
+            protagonist: true,
+        },
+    });
+
+    const total = await db.select({ count: stories.id })
+        .from(stories)
+        .where(and(
+            eq(stories.visibility, "public"),
+            eq(stories.allowForking, true)
+        ));
+
+    // meta: { page: number; pageSize: number; total: number }
+
+    return paginated(c, publicStories, { page, pageSize: limit, total: total[0]?.count || 0 });
 });
 
 storiesRouter.get("/:id", async (c) => {
@@ -200,7 +231,8 @@ storiesRouter.post("/:id/continue", async (c) => {
                 orderBy: desc(scenes.turnNumber),
                 limit: 5
             },
-            echoes: true
+            echoes: true,
+            deferredCharacters: true
         }
     })
 
@@ -219,6 +251,24 @@ storiesRouter.post("/:id/continue", async (c) => {
                 id: e.id,
                 description: e.description,
                 triggerCondition: e.triggerCondition,
+            })),
+            protagonistLocation: activeProtagonist?.currentLocation || "",
+            protagonistState: activeProtagonist
+                ? `Health: ${activeProtagonist.health}, Energy: ${activeProtagonist.energy}`
+                : "",
+            userAction,
+            recentNarration: lastScene?.narration || "",
+        });
+
+        const pendingCharacters = story.deferredCharacters.filter(c => !c.introduced);
+        const triggeredCharacters = await evaluateDeferredCharacters({
+            storyId,
+            pendingCharacters: pendingCharacters.map(c => ({
+                id: c.id,
+                name: c.name,
+                description: c.description,
+                role: c.role,
+                triggerCondition: c.triggerCondition,
             })),
             protagonistLocation: activeProtagonist?.currentLocation || "",
             protagonistState: activeProtagonist
@@ -250,7 +300,8 @@ storiesRouter.post("/:id/continue", async (c) => {
             })),
             userAction,
             triggeredEchoes: triggeredEchoes.map(e => ({ description: e.description })),
-            factualKnowledge
+            factualKnowledge,
+            introducedCharacters: triggeredCharacters.map(c => ({ name: c.name, description: c.description, role: c.role }))
         });
 
         const newTurnNumber = (story.turnCount || 0) + 1;
@@ -265,6 +316,17 @@ storiesRouter.post("/:id/continue", async (c) => {
             userAction,
             narration: response.narration,
             protagonistId: activeProtagonist?.id,
+            protagonistSnapshot: activeProtagonist ? {
+                name: activeProtagonist.name,
+                description: activeProtagonist.description,
+                health: activeProtagonist.health,
+                energy: activeProtagonist.energy,
+                currentLocation: activeProtagonist.currentLocation,
+                baseTraits: activeProtagonist.baseTraits,
+                currentTraits: activeProtagonist.currentTraits,
+                inventory: activeProtagonist.inventory,
+                scars: activeProtagonist.scars,
+            } : null,
         }).returning();
 
         await db.update(stories)
@@ -273,6 +335,10 @@ storiesRouter.post("/:id/continue", async (c) => {
                 updatedAt: new Date(),
             })
             .where(eq(stories.id, storyId));
+
+        for (const char of triggeredCharacters) {
+            await markCharacterIntroduced(char.id, newScene.id);
+        }
 
         storeMemory([
             { role: 'user', content: userAction },
@@ -319,7 +385,8 @@ storiesRouter.post("/:id/continue/stream", async (c) => {
         with: {
             protagonist: true,
             scenes: { orderBy: desc(scenes.turnNumber), limit: 5 },
-            echoes: true
+            echoes: true,
+            deferredCharacters: true
         }
     })
 
@@ -340,6 +407,24 @@ storiesRouter.post("/:id/continue/stream", async (c) => {
                 userAction,
                 recentNarration: lastScene?.narration || ""
             })
+
+            const pendingCharacters = story.deferredCharacters.filter(c => !c.introduced);
+            const triggeredCharacters = await evaluateDeferredCharacters({
+                storyId,
+                pendingCharacters: pendingCharacters.map(c => ({
+                    id: c.id,
+                    name: c.name,
+                    description: c.description,
+                    role: c.role,
+                    triggerCondition: c.triggerCondition,
+                })),
+                protagonistLocation: activeProtagonist?.currentLocation || "",
+                protagonistState: activeProtagonist
+                    ? `Health: ${activeProtagonist.health}, Energy: ${activeProtagonist.energy}`
+                    : "",
+                userAction,
+                recentNarration: lastScene?.narration || "",
+            });
 
             const memoryResult = await searchMemory(userAction, "testUserId");
             const factualKnowledge = memoryResult.results?.map((m: any) => m.content) || [];
@@ -363,7 +448,8 @@ storiesRouter.post("/:id/continue/stream", async (c) => {
                 })),
                 userAction,
                 triggeredEchoes: triggeredEchoes.map(e => ({ description: e.description })),
-                factualKnowledge
+                factualKnowledge,
+                introducedCharacters: triggeredCharacters.map(c => ({ name: c.name, description: c.description, role: c.role }))
             });
 
             for await (const chunk of fakeStream(response.narration, 25)) {
@@ -382,11 +468,26 @@ storiesRouter.post("/:id/continue/stream", async (c) => {
                 userAction,
                 narration: response.narration,
                 protagonistId: activeProtagonist?.id,
+                protagonistSnapshot: activeProtagonist ? {
+                    name: activeProtagonist.name,
+                    description: activeProtagonist.description,
+                    health: activeProtagonist.health,
+                    energy: activeProtagonist.energy,
+                    currentLocation: activeProtagonist.currentLocation,
+                    baseTraits: activeProtagonist.baseTraits,
+                    currentTraits: activeProtagonist.currentTraits,
+                    inventory: activeProtagonist.inventory,
+                    scars: activeProtagonist.scars,
+                } : null
             }).returning();
 
             await db.update(stories)
                 .set({ turnCount: newTurnNumber, updatedAt: new Date() })
                 .where(eq(stories.id, storyId));
+
+            for (const char of triggeredCharacters) {
+                await markCharacterIntroduced(char.id, newScene.id);
+            }
 
             storeMemory([
                 { role: 'user', content: userAction },
@@ -419,6 +520,105 @@ storiesRouter.post("/:id/continue/stream", async (c) => {
             await stream.writeSSE({ event: "error", data: "Failed to generate story" });
         }
     })
+})
+
+storiesRouter.post("/:id/fork", async (c) => {
+    const storyId = Number(c.req.param("id"));
+    if (isNaN(storyId)) return error(c, "INVALID_ID");
+
+    const body = await c.req.json();
+    const sceneId = body.sceneId;
+
+    if (!sceneId || typeof sceneId !== "number") {
+        return error(c, "VALIDATION_ERROR", "sceneId is required");
+    }
+
+    const originalStory = await db.query.stories.findFirst({
+        where: eq(stories.id, storyId)
+    })
+
+    if (!originalStory) return error(c, "NOT_FOUND", "Story not found");
+
+    const testUserId = "test-user-1"; // TODO: Replace with auth
+
+    if (originalStory.userId !== testUserId && !originalStory.allowForking) {
+        return error(c, "FORBIDDEN", "This story does not allow forking");
+    }
+
+    const forkScene = await db.query.scenes.findFirst({
+        where: eq(scenes.id, sceneId)
+    })
+
+    if (!forkScene || forkScene.storyId !== storyId) {
+        return error(c, "NOT_FOUND", "Scene not found in this story")
+    }
+
+    const protagonistSnapshot = forkScene.protagonistSnapshot as Record<string, unknown> | null;
+
+    try {
+        const [forkedStory] = await db.insert(stories).values({
+            userId: testUserId,
+            title: `${originalStory.title} (Fork)`,
+            description: originalStory.description,
+            genre: originalStory.genre,
+            narrativeStance: originalStory.narrativeStance,
+            storyMode: originalStory.storyMode,
+            forkedFromStoryId: storyId,
+            forkedAtSceneId: sceneId,
+            turnCount: forkScene.turnNumber
+        }).returning();
+
+        let protagonistId: number | undefined;
+        if (protagonistSnapshot) {
+            const [newProtagonist] = await db.insert(protagonists).values({
+                storyId: forkedStory.id,
+                name: protagonistSnapshot.name as string,
+                description: protagonistSnapshot.description as string | null,
+                health: protagonistSnapshot.health as number,
+                energy: protagonistSnapshot.energy as number,
+                currentLocation: protagonistSnapshot.currentLocation as string,
+                baseTraits: protagonistSnapshot.baseTraits as string[],
+                currentTraits: protagonistSnapshot.currentTraits as string[],
+                inventory: protagonistSnapshot.inventory as string[],
+                scars: protagonistSnapshot.scars as string[],
+                isActive: true,
+            }).returning();
+            protagonistId = newProtagonist.id;
+        }
+
+        const scenesToCopy = await db.query.scenes.findMany({
+            where: eq(scenes.storyId, storyId),
+            orderBy: (scenes, { asc }) => [asc(scenes.turnNumber)],
+        });
+
+        const scenesUpToFork = scenesToCopy.filter(s => s.turnNumber <= forkScene.turnNumber);
+
+        for (const scene of scenesUpToFork) {
+            await db.insert(scenes).values({
+                storyId: forkedStory.id,
+                turnNumber: scene.turnNumber,
+                userAction: scene.userAction,
+                narration: scene.narration,
+                protagonistSnapshot: scene.protagonistSnapshot,
+                mood: scene.mood,
+                protagonistId,
+            });
+        }
+
+        const storyWithRelations = await db.query.stories.findFirst({
+            where: eq(stories.id, forkedStory.id),
+            with: {
+                protagonist: true,
+                scenes: true,
+            },
+        });
+
+        return success(c, storyWithRelations, 201);
+
+    } catch (err) {
+        console.error("Fork error:", err);
+        return error(c, "INTERNAL_ERROR", "Failed to fork story");
+    }
 })
 
 export default storiesRouter;

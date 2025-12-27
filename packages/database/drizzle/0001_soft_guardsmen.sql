@@ -1,0 +1,1 @@
+ALTER TABLE "stories" ADD COLUMN "allow_forking" boolean DEFAULT false NOT NULL;
