@@ -155,10 +155,14 @@ Echoes are invisible by default. The magic is surprise. "Director's commentary" 
 - [x] Create LLM service abstraction (`services/llm.ts`)
 - [x] Create system prompt (`prompts/system.ts`)
 - [x] Create initialization prompt (`prompts/initialize.ts`)
+- [x] Create continuation prompt (`prompts/continue.ts`)
 - [x] Define response schemas (`shared/schemas/llm.ts`)
 - [x] Implement story initialization (POST /api/stories generates opening scene)
-- [ ] Implement story continuation (POST /api/stories/:id/continue)
-- [ ] Implement SSE streaming for responses
+- [x] Implement story continuation (POST /api/stories/:id/continue)
+- [x] Implement echo evaluation + planting + resolution
+- [x] Implement codex extraction (background)
+- [x] Implement SSE streaming (POST /api/stories/:id/continue/stream)
+- [x] Refactor routes to services (echo, protagonist, story, codex)
 - [ ] Add retry logic
 - [ ] Add timeout handling
 

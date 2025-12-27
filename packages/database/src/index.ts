@@ -11,4 +11,4 @@ const pool = new Pool({
 
 export const db = drizzle(pool, { schema });
 export * from "./schema"
-export { eq, desc, asc } from "drizzle-orm";
+export { eq, desc, asc, inArray } from "drizzle-orm";

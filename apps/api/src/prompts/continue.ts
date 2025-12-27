@@ -18,6 +18,9 @@ interface ContinueContext {
         narration: string;
     }>;
     userAction: string;
+    triggeredEchoes?: Array<{
+        description: string;
+    }>;
 }
 
 export function buildContinuePrompt(ctx: ContinueContext): string {
@@ -42,8 +45,21 @@ export function buildContinuePrompt(ctx: ContinueContext): string {
         `### Turn ${i + 1}\n**Action:** ${s.userAction}\n**Result:** ${s.narration}`
     ).join("\n\n");
 
+    let echoBlock = "";
+    if (ctx.triggeredEchoes && ctx.triggeredEchoes.length > 0) {
+        const echoDescriptions = ctx.triggeredEchoes.map(e => `- ${e.description}`).join("\n");
+        echoBlock = `
+        ## Consequences Unfolding
+        The following past choices are now coming back:
+        ${echoDescriptions}
+        
+        Weave these consequences naturally into the scene. Don't announce them — show them through events, dialogue, or changed circumstances.
+        `;
+    }
+
     return `Continue the story based on the player's action.
         ${stateBlock}
+        ${echoBlock}
 
         ## Recent Events
         ${recentContext || "This is the beginning of the story."}
