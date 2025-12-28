@@ -1,0 +1,169 @@
+import { Hono } from "hono";
+import { db, eq, desc, and } from "@once/database";
+import { stories, protagonists, scenes } from "@once/database/schema";
+import { success, error, paginated } from "@/lib/response";
+import { createStorySchema, openSceneSchema } from "@once/shared/schemas";
+import { buildSystemPrompt } from "@/prompts/system";
+import { buildInitializePrompt } from "@/prompts/initialize";
+import { generateStructured } from "@/services/llm";
+import { storeMemory } from "@/services/memory";
+
+const crudRouter = new Hono();
+
+crudRouter.get("/", async (c) => {
+    const testUserId = "test-user-1";
+    const userStories = await db.query.stories.findMany({
+        where: eq(stories.userId, testUserId),
+        orderBy: desc(stories.updatedAt)
+    })
+
+    return success(c, userStories);
+});
+
+crudRouter.get("/discover", async (c) => {
+    const page = Number(c.req.query("page") || "1");
+    const limit = Number(c.req.query("limit") || "20");
+    const offset = (page - 1) * limit;
+
+    const publicStories = await db.query.stories.findMany({
+        where: (stories, { and, eq }) => and(
+            eq(stories.visibility, "public"),
+            eq(stories.allowForking, true)
+        ),
+        orderBy: desc(stories.upvotes),
+        limit,
+        offset,
+        with: {
+            protagonist: true,
+        },
+    });
+
+    const total = await db.select({ count: stories.id })
+        .from(stories)
+        .where(and(
+            eq(stories.visibility, "public"),
+            eq(stories.allowForking, true)
+        ));
+
+    return paginated(c, publicStories, { page, pageSize: limit, total: total[0]?.count || 0 });
+});
+
+crudRouter.get("/:id", async (c) => {
+    const id = Number(c.req.param("id"));
+
+    if (isNaN(id)) {
+        return error(c, "INVALID_ID");
+    }
+
+    const story = await db.query.stories.findFirst({
+        where: eq(stories.id, id),
+        with: { protagonist: true }
+    });
+
+    if (!story) {
+        return error(c, "NOT_FOUND", "Story not found");
+    }
+
+    return success(c, story);
+})
+
+crudRouter.post("/", async (c) => {
+    const body = await c.req.json();
+    const parsed = createStorySchema.safeParse(body);
+
+    if (!parsed.success) {
+        return error(c, "VALIDATION_ERROR", parsed.error.errors[0].message);
+    }
+
+    const { title, description, genre, narrativeStance, storyMode, protagonist } = parsed.data;
+    const testUserId = "test-user-1";
+
+    const [newStory] = await db.insert(stories).values({
+        userId: testUserId,
+        title,
+        description,
+        genre,
+        narrativeStance,
+        storyMode
+    }).returning();
+
+    let protagonistId: number | undefined;
+
+    if (storyMode === "protagonist" && protagonist) {
+        const [newProtagonist] = await db.insert(protagonists).values({
+            storyId: newStory.id,
+            name: protagonist.name,
+            description: protagonist.description,
+            currentLocation: protagonist.location,
+            baseTraits: protagonist.traits,
+            currentTraits: protagonist.traits
+        }).returning();
+
+        protagonistId = newProtagonist.id;
+    }
+
+    const systemPrompt = buildSystemPrompt(narrativeStance, storyMode);
+    const initPrompt = buildInitializePrompt({ title, genre, stance: narrativeStance, mode: storyMode, protagonist });
+
+    try {
+        const openingScene = await generateStructured(systemPrompt, initPrompt, openSceneSchema, "opening_scene");
+
+        if (!protagonist && openingScene.protagonistGenerated) {
+            const gen = openingScene.protagonistGenerated;
+            const [newProtagonist] = await db.insert(protagonists).values({
+                storyId: newStory.id,
+                name: gen.name,
+                description: gen.description,
+                currentLocation: gen.location,
+                baseTraits: gen.traits,
+                currentTraits: gen.traits
+            }).returning();
+            protagonistId = newProtagonist.id;
+        }
+
+        await db.insert(scenes).values({
+            storyId: newStory.id,
+            turnNumber: 1,
+            userAction: "[STORY_START]",
+            narration: openingScene.narration,
+            protagonistId,
+        });
+
+        storeMemory([{ role: 'assistant', content: openingScene.narration }], testUserId).catch(console.error);
+
+        const storyWithRelations = await db.query.stories.findFirst({
+            where: eq(stories.id, newStory.id),
+            with: {
+                protagonist: true,
+                scenes: true,
+            },
+        });
+
+        return success(c, storyWithRelations, 201);
+    } catch (err) {
+        console.error("LLM Error: ", err);
+        return error(c, "LLM_ERROR", "Failed to create opening scene");
+    }
+});
+
+crudRouter.delete("/:id", async (c) => {
+    const id = Number(c.req.param("id"));
+
+    if (isNaN(id)) {
+        return error(c, "INVALID_ID", "Invalid story ID");
+    }
+
+    const [updated] = await db
+        .update(stories)
+        .set({ status: "abandoned" })
+        .where(eq(stories.id, id))
+        .returning();
+
+    if (!updated) {
+        return error(c, "NOT_FOUND", "Story not found");
+    }
+
+    return success(c, { message: "Story archived" });
+});
+
+export default crudRouter;
