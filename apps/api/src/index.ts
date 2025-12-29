@@ -5,6 +5,8 @@ import { prettyJSON } from "hono/pretty-json";
 import storiesRouter from "./routes/stories";
 import { error } from "./lib/response";
 import vaultRouter from "./routes/vault";
+import { auth } from "./lib/auth";
+import { authMiddleware, requireAuth } from "./middleware/auth";
 
 const app = new Hono();
 
@@ -17,11 +19,14 @@ app.use("*",
         credentials: true,
     })
 );
+app.use("*", authMiddleware);
 
 
 app.get("/health", (c) => {
     return c.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
 app.route("/api/stories", storiesRouter);
 app.route("/api/vault", vaultRouter);

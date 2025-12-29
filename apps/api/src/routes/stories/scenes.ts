@@ -1,14 +1,24 @@
 import { Hono } from "hono";
 import { db, eq } from "@once/database";
-import { scenes, codexEntries, echoes } from "@once/database/schema";
+import { scenes, codexEntries, echoes, stories } from "@once/database/schema";
 import { success, error } from "@/lib/response";
+import { requireAuth } from "@/middleware/auth";
 
 const scenesRouter = new Hono();
 
-scenesRouter.get("/:id/scenes", async (c) => {
+scenesRouter.get("/:id/scenes", requireAuth, async (c) => {
     const id = Number(c.req.param("id"));
 
     if (isNaN(id)) return error(c, "INVALID_ID");
+
+    const story = await db.query.stories.findFirst({ where: eq(stories.id, id) });
+    if (!story) return error(c, "NOT_FOUND", "Story not found");
+
+    const user = c.get("user");
+
+    if (!user || story.userId !== user.id) {
+        return error(c, "FORBIDDEN", "This story is private");
+    }
 
     const storyScenes = await db.query.scenes.findMany({
         where: eq(scenes.storyId, id),
@@ -18,10 +28,18 @@ scenesRouter.get("/:id/scenes", async (c) => {
     return success(c, storyScenes);
 });
 
-scenesRouter.get("/:id/codex", async (c) => {
+scenesRouter.get("/:id/codex", requireAuth, async (c) => {
     const id = Number(c.req.param("id"));
 
     if (isNaN(id)) return error(c, "INVALID_ID");
+
+    const story = await db.query.stories.findFirst({ where: eq(stories.id, id) });
+    if (!story) return error(c, "NOT_FOUND", "Story not found");
+
+    const user = c.get("user");
+    if (!user || story.userId !== user.id) {
+        return error(c, "FORBIDDEN", "This story is private");
+    }
 
     const storyCodex = await db.query.codexEntries.findMany({
         where: eq(codexEntries.storyId, id),
@@ -30,10 +48,18 @@ scenesRouter.get("/:id/codex", async (c) => {
     return success(c, storyCodex);
 });
 
-scenesRouter.get("/:id/echoes", async (c) => {
+scenesRouter.get("/:id/echoes", requireAuth, async (c) => {
     const id = Number(c.req.param("id"));
 
     if (isNaN(id)) return error(c, "INVALID_ID");
+
+    const story = await db.query.stories.findFirst({ where: eq(stories.id, id) });
+    if (!story) return error(c, "NOT_FOUND", "Story not found");
+
+    const user = c.get("user");
+    if (!user || story.userId !== user.id) {
+        return error(c, "FORBIDDEN", "You can only view echoes of your own stories");
+    }
 
     const storyEchoes = await db.query.echoes.findMany({
         where: eq(echoes.storyId, id),

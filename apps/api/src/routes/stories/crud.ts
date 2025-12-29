@@ -7,13 +7,14 @@ import { buildSystemPrompt } from "@/prompts/system";
 import { buildInitializePrompt } from "@/prompts/initialize";
 import { generateStructured } from "@/services/llm";
 import { storeMemory } from "@/services/memory";
+import { requireAuth } from "@/middleware/auth";
 
 const crudRouter = new Hono();
 
-crudRouter.get("/", async (c) => {
-    const testUserId = "test-user-1";
+crudRouter.get("/", requireAuth, async (c) => {
+    const user = c.get("user")!;
     const userStories = await db.query.stories.findMany({
-        where: eq(stories.userId, testUserId),
+        where: eq(stories.userId, user.id),
         orderBy: desc(stories.updatedAt)
     })
 
@@ -48,7 +49,7 @@ crudRouter.get("/discover", async (c) => {
     return paginated(c, publicStories, { page, pageSize: limit, total: total[0]?.count || 0 });
 });
 
-crudRouter.get("/:id", async (c) => {
+crudRouter.get("/:id", requireAuth, async (c) => {
     const id = Number(c.req.param("id"));
 
     if (isNaN(id)) {
@@ -64,10 +65,15 @@ crudRouter.get("/:id", async (c) => {
         return error(c, "NOT_FOUND", "Story not found");
     }
 
+    const user = c.get("user")
+    const isOwner = user && story.userId === user.id;
+
+    if (!isOwner) return error(c, "FORBIDDEN", "This story is private");
+
     return success(c, story);
 })
 
-crudRouter.post("/", async (c) => {
+crudRouter.post("/", requireAuth, async (c) => {
     const body = await c.req.json();
     const parsed = createStorySchema.safeParse(body);
 
@@ -76,10 +82,10 @@ crudRouter.post("/", async (c) => {
     }
 
     const { title, description, genre, narrativeStance, storyMode, protagonist } = parsed.data;
-    const testUserId = "test-user-1";
+    const user = c.get("user")!;
 
     const [newStory] = await db.insert(stories).values({
-        userId: testUserId,
+        userId: user.id,
         title,
         description,
         genre,
@@ -129,7 +135,7 @@ crudRouter.post("/", async (c) => {
             protagonistId,
         });
 
-        storeMemory([{ role: 'assistant', content: openingScene.narration }], testUserId).catch(console.error);
+        storeMemory([{ role: 'assistant', content: openingScene.narration }], user.id).catch(console.error);
 
         const storyWithRelations = await db.query.stories.findFirst({
             where: eq(stories.id, newStory.id),
@@ -146,22 +152,24 @@ crudRouter.post("/", async (c) => {
     }
 });
 
-crudRouter.delete("/:id", async (c) => {
+crudRouter.delete("/:id", requireAuth, async (c) => {
     const id = Number(c.req.param("id"));
 
     if (isNaN(id)) {
         return error(c, "INVALID_ID", "Invalid story ID");
     }
 
+    const story = await db.query.stories.findFirst({ where: eq(stories.id, id) });
+    if (!story) return error(c, "NOT_FOUND", "Story not found");
+
+    const user = c.get("user");
+    if (!user || story.userId !== user.id) return error(c, "FORBIDDEN", "You can only delete your own stories");
+
     const [updated] = await db
         .update(stories)
         .set({ status: "abandoned" })
         .where(eq(stories.id, id))
         .returning();
-
-    if (!updated) {
-        return error(c, "NOT_FOUND", "Story not found");
-    }
 
     return success(c, { message: "Story archived" });
 });

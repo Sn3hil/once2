@@ -3,12 +3,21 @@ import { db, eq, and } from "@once/database";
 import { stories, protagonists } from "@once/database/schema";
 import { success, error } from "@/lib/response";
 import { createProtagonistSchema, updateProtagonistSchema } from "@once/shared/schemas";
+import { requireAuth } from "@/middleware/auth";
 
 const protagonistsRouter = new Hono();
 
-protagonistsRouter.get("/:id/protagonists", async (c) => {
+protagonistsRouter.get("/:id/protagonists", requireAuth, async (c) => {
     const id = Number(c.req.param("id"));
     if (isNaN(id)) return error(c, "INVALID_ID");
+
+    const story = await db.query.stories.findFirst({ where: eq(stories.id, id) });
+    if (!story) return error(c, "NOT_FOUND", "Story not found");
+
+    const user = c.get("user");
+    if (!user || story.userId !== user.id) {
+        return error(c, "FORBIDDEN");
+    }
 
     const storyProtagonists = await db.query.protagonists.findMany({
         where: eq(protagonists.storyId, id),
@@ -17,7 +26,7 @@ protagonistsRouter.get("/:id/protagonists", async (c) => {
     return success(c, storyProtagonists);
 });
 
-protagonistsRouter.post("/:id/protagonists", async (c) => {
+protagonistsRouter.post("/:id/protagonists", requireAuth, async (c) => {
     const storyId = Number(c.req.param("id"));
     if (isNaN(storyId)) return error(c, "INVALID_ID");
 
@@ -28,6 +37,12 @@ protagonistsRouter.post("/:id/protagonists", async (c) => {
 
     const story = await db.query.stories.findFirst({ where: eq(stories.id, storyId) });
     if (!story) return error(c, "NOT_FOUND", "Story not found");
+
+    const user = c.get("user");
+
+    if (!user || story.userId !== user.id) {
+        return error(c, "FORBIDDEN");
+    }
 
     if (story.storyMode !== "protagonist") {
         return error(c, "VALIDATION_ERROR", "Cannot add protagonist to narrator mode story");
@@ -45,10 +60,18 @@ protagonistsRouter.post("/:id/protagonists", async (c) => {
     return success(c, newProtagonist, 201);
 })
 
-protagonistsRouter.patch("/:id/protagonists/:pid", async (c) => {
+protagonistsRouter.patch("/:id/protagonists/:pid", requireAuth, async (c) => {
     const storyId = Number(c.req.param("id"));
     const protagonistId = Number(c.req.param("pid"));
     if (isNaN(storyId) || isNaN(protagonistId)) return error(c, "INVALID_ID");
+
+    const story = await db.query.stories.findFirst({ where: eq(stories.id, storyId) });
+    if (!story) return error(c, "NOT_FOUND", "Story not found");
+
+    const user = c.get("user");
+    if (!user || story.userId !== user.id) {
+        return error(c, "FORBIDDEN");
+    }
 
     const body = await c.req.json();
 
@@ -75,10 +98,18 @@ protagonistsRouter.patch("/:id/protagonists/:pid", async (c) => {
     return success(c, updated);
 });
 
-protagonistsRouter.post("/:id/protagonists/:pid/activate", async (c) => {
+protagonistsRouter.post("/:id/protagonists/:pid/activate", requireAuth, async (c) => {
     const storyId = Number(c.req.param("id"));
     const protagonistId = Number(c.req.param("pid"));
     if (isNaN(storyId) || isNaN(protagonistId)) return error(c, "INVALID_ID");
+
+    const story = await db.query.stories.findFirst({ where: eq(stories.id, storyId) });
+    if (!story) return error(c, "NOT_FOUND", "Story not found");
+
+    const user = c.get("user");
+    if (!user || story.userId !== user.id) {
+        return error(c, "FORBIDDEN");
+    }
 
     const protagonist = await db.query.protagonists.findFirst({
         where: and(

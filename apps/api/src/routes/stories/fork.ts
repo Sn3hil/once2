@@ -2,10 +2,11 @@ import { Hono } from "hono";
 import { db, eq } from "@once/database";
 import { stories, protagonists, scenes } from "@once/database/schema";
 import { success, error } from "@/lib/response";
+import { requireAuth } from "@/middleware/auth";
 
 const forkRouter = new Hono();
 
-forkRouter.post("/:id/fork", async (c) => {
+forkRouter.post("/:id/fork", requireAuth, async (c) => {
     const storyId = Number(c.req.param("id"));
     if (isNaN(storyId)) return error(c, "INVALID_ID");
 
@@ -22,10 +23,12 @@ forkRouter.post("/:id/fork", async (c) => {
 
     if (!originalStory) return error(c, "NOT_FOUND", "Story not found");
 
-    const testUserId = "test-user-1";
+    const user = c.get("user")!;
 
-    if (originalStory.userId !== testUserId && !originalStory.allowForking) {
-        return error(c, "FORBIDDEN", "This story does not allow forking");
+    if (originalStory.userId !== user.id) {
+        if (originalStory.visibility !== "public" || !originalStory.allowForking) {
+            return error(c, "FORBIDDEN", "This story does not allow forking");
+        }
     }
 
     const forkScene = await db.query.scenes.findFirst({
@@ -40,7 +43,7 @@ forkRouter.post("/:id/fork", async (c) => {
 
     try {
         const [forkedStory] = await db.insert(stories).values({
-            userId: testUserId,
+            userId: user.id,
             title: `${originalStory.title} (Fork)`,
             description: originalStory.description,
             genre: originalStory.genre,

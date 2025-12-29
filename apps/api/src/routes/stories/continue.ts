@@ -10,10 +10,11 @@ import { streamSSE } from "hono/streaming";
 import { fakeStream } from "@/lib/stream";
 import { searchMemory, storeMemory } from "@/services/memory";
 import { evaluateDeferredCharacters, markCharacterIntroduced } from "@/services/deferred";
+import { requireAuth } from "@/middleware/auth";
 
 const continueRouter = new Hono();
 
-continueRouter.post("/:id/continue", async (c) => {
+continueRouter.post("/:id/continue", requireAuth, async (c) => {
     const storyId = Number(c.req.param("id"));
     if (isNaN(storyId)) return error(c, "INVALID_ID");
 
@@ -39,6 +40,9 @@ continueRouter.post("/:id/continue", async (c) => {
 
     if (!story) return error(c, "NOT_FOUND", "Story not found");
     if (story.status !== "active") return error(c, "STORY_COMPLETED", "Cannot continue a completed story");
+
+    const user = c.get("user");
+    if (!user || story.userId !== user.id) return error(c, "FORBIDDEN", "You can only continue your own story");
 
     const activeProtagonist = story.protagonist.find(p => p.isActive);
 
@@ -79,7 +83,7 @@ continueRouter.post("/:id/continue", async (c) => {
             recentNarration: lastScene?.narration || "",
         });
 
-        const memoryResult = await searchMemory(userAction, "testUserId");
+        const memoryResult = await searchMemory(userAction, user.id);
         const factualKnowledge = memoryResult.results?.map((m: any) => m.content) || [];
 
         const response = await generateContinuation({
@@ -144,7 +148,7 @@ continueRouter.post("/:id/continue", async (c) => {
         storeMemory([
             { role: 'user', content: userAction },
             { role: 'assistant', content: response.narration }
-        ], "testUserId").catch(console.error);
+        ], user.id).catch(console.error);
 
         await resolveEchoes(triggeredEchoes.map(e => e.id), newScene.id);
 
@@ -170,7 +174,7 @@ continueRouter.post("/:id/continue", async (c) => {
     }
 })
 
-continueRouter.post("/:id/continue/stream", async (c) => {
+continueRouter.post("/:id/continue/stream", requireAuth, async (c) => {
     const storyId = Number(c.req.param("id"));
     if (isNaN(storyId)) return error(c, "INVALID_ID");
 
@@ -193,6 +197,9 @@ continueRouter.post("/:id/continue/stream", async (c) => {
 
     if (!story) return error(c, "NOT_FOUND", "Story not found");
     if (story.status !== "active") return error(c, "STORY_COMPLETED");
+
+    const user = c.get("user");
+    if (!user || story.userId !== user.id) return error(c, "FORBIDDEN", "You can only continue your own stories");
 
     const activeProtagonist = story.protagonist.find(p => p.isActive);
     const pendingEchoes = story.echoes.filter(e => e.status === "pending");
@@ -227,7 +234,7 @@ continueRouter.post("/:id/continue/stream", async (c) => {
                 recentNarration: lastScene?.narration || "",
             });
 
-            const memoryResult = await searchMemory(userAction, "testUserId");
+            const memoryResult = await searchMemory(userAction, user.id);
             const factualKnowledge = memoryResult.results?.map((m: any) => m.content) || [];
 
             const response = await generateContinuation({
@@ -293,7 +300,7 @@ continueRouter.post("/:id/continue/stream", async (c) => {
             storeMemory([
                 { role: 'user', content: userAction },
                 { role: 'assistant', content: response.narration }
-            ], "testUserId").catch(console.error);
+            ], user.id).catch(console.error);
 
             await resolveEchoes(triggeredEchoes.map(e => e.id), newScene.id);
 

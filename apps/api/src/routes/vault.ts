@@ -3,26 +3,36 @@ import { db, eq } from "@once/database";
 import { vaultCharacters, protagonists } from "@once/database/schema";
 import { createVaultCharacterSchema, updateVaultCharacterSchema } from "@once/shared/schemas"
 import { success, error } from "@/lib/response";
+import { requireAuth } from "@/middleware/auth";
 
 const vaultRouter = new Hono();
 
-vaultRouter.post("/", async (c) => {
+vaultRouter.post("/", requireAuth, async (c) => {
     const body = await c.req.json();
     const parsed = createVaultCharacterSchema.safeParse(body);
     if (!parsed.success) return error(c, "VALIDATION_ERROR", parsed.error.errors[0].message);
 
-    const testUserId = "test-user-1";
+    const user = c.get("user")!;
     const [newCharacter] = await db.insert(vaultCharacters).values({
-        userId: testUserId,
+        userId: user.id,
         ...parsed.data,
     }).returning();
 
     return success(c, newCharacter, 201);
 });
 
-vaultRouter.patch("/:id", async (c) => {
+vaultRouter.patch("/:id", requireAuth, async (c) => {
     const id = Number(c.req.param("id"));
     if (isNaN(id)) return error(c, "INVALID_ID");
+
+    const character = await db.query.vaultCharacters.findFirst({
+        where: eq(vaultCharacters.id, id)
+    })
+
+    if (!character) return error(c, "NOT_FOUND", "Character not found");
+
+    const user = c.get("user");
+    if (!user || character.userId !== user.id) return error(c, "FORBIDDEN");
 
     const body = await c.req.json();
     const parsed = updateVaultCharacterSchema.safeParse(body);
@@ -34,9 +44,18 @@ vaultRouter.patch("/:id", async (c) => {
     return success(c, updated);
 });
 
-vaultRouter.delete("/:id", async (c) => {
+vaultRouter.delete("/:id", requireAuth, async (c) => {
     const id = Number(c.req.param("id"));
     if (isNaN(id)) return error(c, "INVALID_ID");
+
+    const character = await db.query.vaultCharacters.findFirst({
+        where: eq(vaultCharacters.id, id)
+    })
+
+    if (!character) return error(c, "NOT_FOUND", "Character not found")
+
+    const user = c.get("user");
+    if (!user || character.userId !== user.id) return error(c, "FORBIDDEN");
 
     const [deleted] = await db.delete(vaultCharacters).where(eq(vaultCharacters.id, id)).returning();
     if (!deleted) return error(c, "NOT_FOUND", "Character not found");
@@ -44,7 +63,7 @@ vaultRouter.delete("/:id", async (c) => {
     return success(c, { message: "Character deleted" });
 });
 
-vaultRouter.post("/from-protagonist/:protagonistId", async (c) => {
+vaultRouter.post("/from-protagonist/:protagonistId", requireAuth, async (c) => {
     const protagonistId = Number(c.req.param("protagonistId"));
     if (isNaN(protagonistId)) return error(c, "INVALID_ID");
 
@@ -54,9 +73,9 @@ vaultRouter.post("/from-protagonist/:protagonistId", async (c) => {
 
     if (!protagonist) return error(c, "PROTAGONIST_NOT_FOUND");
 
-    const testUserId = "test-user-1";
+    const user = c.get("user")!;
     const [newCharacter] = await db.insert(vaultCharacters).values({
-        userId: testUserId,
+        userId: user.id,
         name: protagonist.name,
         description: protagonist.description,
         traits: protagonist.currentTraits,
@@ -65,17 +84,17 @@ vaultRouter.post("/from-protagonist/:protagonistId", async (c) => {
     return success(c, newCharacter, 201);
 });
 
-vaultRouter.get("/", async (c) => {
-    const testUserId = "test-user-1";
+vaultRouter.get("/", requireAuth, async (c) => {
+    const user = c.get("user")!;
 
     const characters = await db.query.vaultCharacters.findMany({
-        where: eq(vaultCharacters.userId, testUserId),
+        where: eq(vaultCharacters.userId, user.id),
     });
 
     return success(c, characters);
 });
 
-vaultRouter.get("/:id", async (c) => {
+vaultRouter.get("/:id", requireAuth, async (c) => {
     const id = Number(c.req.param("id"));
     if (isNaN(id)) return error(c, "INVALID_ID");
 
@@ -84,6 +103,9 @@ vaultRouter.get("/:id", async (c) => {
     });
 
     if (!character) return error(c, "NOT_FOUND", "Character not found");
+
+    const user = c.get("user");
+    if (!user || character.userId !== user.id) return error(c, "FORBIDDEN");
 
     return success(c, character);
 });
