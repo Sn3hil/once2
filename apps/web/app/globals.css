@@ -6,12 +6,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-ember: var(--ember);
-  --color-cyan: var(--cyan);
-  --font-sans: var(--font-geist-sans);
-  --font-playfair: var(--font-playfair);
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-line: var(--line);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-serif: var(--font-playfair);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -19,13 +21,35 @@
 
 :root {
   --radius: 0.5rem;
-  --background: #050505;
-  --foreground: #EAEAEA;
-  --ember: #FF4D00;
-  --cyan: #00F0FF;
-  --muted: #1a1a1a;
-  --muted-foreground: #666666;
-  --charcoal: #0d0d0d;
+
+  /* Aether - Light Mode */
+  --background: #E8E4D9;
+  --surface: #F5F2EA;
+  --foreground: #1A1714;
+  --muted: #7A6F5F;
+  --muted-foreground: #7A6F5F;
+  --accent: #8B6914;
+  --danger: #8B3A3A;
+  --line: #C5BFB0;
+
+  --charcoal: #1A1714;
+}
+
+.dark {
+  /* Black + Aether hints */
+  --background: #0A0A0A;
+  --surface: #111111;
+  --foreground: #E8E4D9;
+  /* Aether as text color */
+  --muted: #8A8578;
+  /* Warm gray */
+  --muted-foreground: #8A8578;
+  --accent: #C9A227;
+  /* Warmer gold */
+  --danger: #A34A4A;
+  --line: #3D3A34;
+  /* Aether-tinted dark line */
+  --charcoal: #111111;
 }
 
 @layer base {
@@ -43,7 +67,7 @@
   }
 
   ::selection {
-    background: var(--ember);
+    background: var(--accent);
     color: var(--background);
   }
 }
@@ -53,30 +77,33 @@
   font-style: italic;
 }
 
-.text-ember {
-  color: var(--ember);
+.dotted-border-l {
+  border-left: 1px dashed var(--line);
 }
 
-.text-cyan {
-  color: var(--cyan);
+.dotted-border-r {
+  border-right: 1px dashed var(--line);
 }
 
-.bg-charcoal {
-  background: var(--charcoal);
+.dotted-border-t {
+  border-top: 1px dashed var(--line);
 }
 
-.glow-ember {
-  box-shadow: 0 0 60px rgba(255, 77, 0, 0.4), 0 0 120px rgba(255, 77, 0, 0.2);
+.dotted-border-b {
+  border-bottom: 1px dashed var(--line);
 }
 
-.glow-text-ember {
-  text-shadow: 0 0 40px rgba(255, 77, 0, 0.6);
+/* Typography utilities */
+.font-serif {
+  font-family: var(--font-playfair);
 }
 
-.spotlight-ember {
-  background: radial-gradient(circle, #FF4D00 0%, transparent 70%);
+.text-accent {
+  color: var(--accent);
 }
 
-.tracking-wide-custom {
-  letter-spacing: 0.05em;
+/* Selection */
+::selection {
+  background: var(--accent);
+  color: var(--background);
 }
