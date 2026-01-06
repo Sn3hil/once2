@@ -4,3 +4,4 @@ export * from "./story";
 export * from "./llm";
 export * from "./deferred";
 export * from "./protagonist";
+export * from "./social";

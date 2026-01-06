@@ -1,5 +1,6 @@
 import { pgTable, serial, text, varchar, integer, boolean, timestamp, json, pgEnum, primaryKey, unique } from "drizzle-orm/pg-core";
 import { relations } from 'drizzle-orm';
+import { user } from "./auth-schema"
 
 export const narrativeStanceEnum = pgEnum("narrative_stance", [
     "grimdark",
@@ -205,6 +206,10 @@ export const storiesRelations = relations(stories, ({ one, many }) => ({
         fields: [stories.forkedFromStoryId],
         references: [stories.id],
     }),
+    user: one(user, {
+        fields: [stories.userId],
+        references: [user.id]
+    })
 }));
 
 export const protagonistsRelations = relations(protagonists, ({ one }) => ({

@@ -5,6 +5,7 @@ interface InitializeContext {
     genre: string;
     stance: NarrativeStance;
     mode: StoryMode;
+    plot?: string,
     protagonist?: {
         name: string;
         description?: string;
@@ -18,7 +19,7 @@ export function buildInitializePrompt(ctx: InitializeContext): string {
 
     if (hasProtagonist) {
         const p = ctx.protagonist!;
-        return `Create the opening scene for a ${ctx.genre} story titled "${ctx.title}".
+        return `Create the opening scene for a ${ctx.genre} story titled "${ctx.title} ${ctx.plot ? `and following the plot ${ctx.plot}` : ", there is no rigid plot, explore the best story around this contexts"}".
 
             ## Protagonist
             - Name: ${p.name}

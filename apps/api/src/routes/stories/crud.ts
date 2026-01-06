@@ -7,9 +7,9 @@ import { buildSystemPrompt } from "@/prompts/system";
 import { buildInitializePrompt } from "@/prompts/initialize";
 import { generateStructured } from "@/services/llm";
 import { storeMemory } from "@/services/memory";
-import { requireAuth } from "@/middleware/auth";
+import { requireAuth, type AuthVariables } from "@/middleware/auth";
 
-const crudRouter = new Hono();
+const crudRouter = new Hono<{ Variables: AuthVariables }>();
 
 crudRouter.get("/", requireAuth, async (c) => {
     const user = c.get("user")!;
@@ -36,6 +36,7 @@ crudRouter.get("/discover", async (c) => {
         offset,
         with: {
             protagonist: true,
+            user: true
         },
     });
 
@@ -49,7 +50,7 @@ crudRouter.get("/discover", async (c) => {
     return paginated(c, publicStories, { page, pageSize: limit, total: total[0]?.count || 0 });
 });
 
-crudRouter.get("/:id", requireAuth, async (c) => {
+crudRouter.get("/:id", async (c) => {
     const id = Number(c.req.param("id"));
 
     if (isNaN(id)) {
@@ -58,17 +59,23 @@ crudRouter.get("/:id", requireAuth, async (c) => {
 
     const story = await db.query.stories.findFirst({
         where: eq(stories.id, id),
-        with: { protagonist: true }
+        with: {
+            protagonist: true,
+            user: true
+        }
     });
 
     if (!story) {
         return error(c, "NOT_FOUND", "Story not found");
     }
 
-    const user = c.get("user")
+    const user = c.get("user");
     const isOwner = user && story.userId === user.id;
+    const isPublic = story.visibility === "public";
 
-    if (!isOwner) return error(c, "FORBIDDEN", "This story is private");
+    if (!isOwner && !isPublic) {
+        return error(c, "FORBIDDEN", "This story is private");
+    }
 
     return success(c, story);
 })
@@ -81,7 +88,7 @@ crudRouter.post("/", requireAuth, async (c) => {
         return error(c, "VALIDATION_ERROR", parsed.error.errors[0].message);
     }
 
-    const { title, description, genre, narrativeStance, storyMode, protagonist } = parsed.data;
+    const { title, description, genre, narrativeStance, storyMode, storyIdea, protagonist } = parsed.data;
     const user = c.get("user")!;
 
     const [newStory] = await db.insert(stories).values({
@@ -109,7 +116,7 @@ crudRouter.post("/", requireAuth, async (c) => {
     }
 
     const systemPrompt = buildSystemPrompt(narrativeStance, storyMode);
-    const initPrompt = buildInitializePrompt({ title, genre, stance: narrativeStance, mode: storyMode, protagonist });
+    const initPrompt = buildInitializePrompt({ title, genre, stance: narrativeStance, mode: storyMode, plot: storyIdea, protagonist });
 
     try {
         const openingScene = await generateStructured(systemPrompt, initPrompt, openSceneSchema, "opening_scene");

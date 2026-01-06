@@ -1,122 +1,197 @@
 "use client";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
+import FontDropdown from "./font-dropdown";
+import { SketchyBar } from "@/components/sketchy-bar";
+import { BookOpen, User } from "lucide-react";
+import MobileDrawer from "./mobile-drawer";
+import { storiesApi } from "@/lib/api";
+import type { Story, Scene, Protagonist, CodexEntry } from "@once/shared";
 
-interface StoryInterfaceProps {
-    storyId: string;
-}
 
-export function StoryInterface({ storyId }: StoryInterfaceProps) {
+export function StoryInterface({ storyId }: { storyId: string }) {
+    const [showCodex, setShowCodex] = useState(false);
+    const [showProtagonist, setShowProtagonist] = useState(false);
+
+    const [story, setStory] = useState<Story | null>(null);
+    const [scenes, setScenes] = useState<Scene[]>([]);
+    const [codex, setCodex] = useState<CodexEntry[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isContinuing, setIsContinuing] = useState(false);
+
+    const protagonist = story?.protagonist?.[0];
+    const storyMode = story?.storyMode;
+
+    useEffect(() => {
+        const fetchData = async () => {
+            const [storyRes, scenesRes, codexRes] = await Promise.all([
+                storiesApi.get(storyId),
+                storiesApi.getScenes(storyId),
+                storiesApi.getCodex(storyId),
+            ]);
+
+            if (storyRes.data) setStory(storyRes.data);
+            if (scenesRes.data) setScenes(scenesRes.data);
+            if (codexRes.data) setCodex(codexRes.data);
+
+            setIsLoading(false);
+        };
+
+        fetchData();
+    }, [storyId]);
+
+    const handleContinue = async (action: string) => {
+        setIsContinuing(true);
+        const response = await storiesApi.continue(storyId, action);
+        if (response.data) {
+            setScenes([...scenes, response.data.scene]);
+        }
+        setIsContinuing(false);
+    };
+
     return (
         <div className="flex h-screen flex-col bg-background">
-            {/* Header */}
-            <header className="flex h-14 items-center justify-center dotted-border-b">
-                <h1 className="font-serif text-lg text-foreground">Story Title</h1>
+            <header className="flex h-14 items-center justify-center dotted-border-b gap-2 md:gap-4">
+                <button
+                    onClick={() => setShowCodex(true)}
+                    className="lg:hidden text-muted hover:text-foreground cursor-pointer"
+                >
+                    <BookOpen className="size-5" />
+                </button>
+                <div className="flex items-center gap-5">
+                    <h1 className="text-lg text-foreground">{story?.title || "Loading..."}</h1>
+                    <FontDropdown />
+                </div>
+                {storyMode === "protagonist" && protagonist && (
+                    <button
+                        onClick={() => setShowProtagonist(true)}
+                        className="lg:hidden text-muted hover:text-foreground cursor-pointer"
+                    >
+                        <User className="size-5" />
+                    </button>
+                )}
             </header>
 
-            {/* Three-column layout */}
             <div className="flex flex-1 overflow-hidden">
-                {/* Left Sidebar - Codex */}
-                <aside className="w-56 shrink-0 overflow-y-auto p-4 dotted-border-r">
-                    <CodexSidebar />
+                <aside className="hidden lg:block w-56 shrink-0 overflow-y-auto px-8 py-4 dotted-border-r">
+                    <CodexSidebar codex={codex} protagonistName={storyMode === "protagonist" ? protagonist?.name : undefined} />
                 </aside>
 
-                {/* Center - Story */}
+                <MobileDrawer className="py-4 px-8" open={showCodex} onClose={() => setShowCodex(false)} side="left">
+                    <CodexSidebar codex={codex} protagonistName={storyMode === "protagonist" ? protagonist?.name : undefined} />
+                </MobileDrawer>
+
                 <main className="flex flex-1 flex-col overflow-hidden">
                     <div className="flex-1 overflow-y-auto px-8 py-6">
-                        <div className="mx-auto max-w-[650px]">
-                            <StoryNarration />
+                        <div className="mx-auto max-w-3xl">
+                            <StoryNarration scenes={scenes} />
                         </div>
                     </div>
 
-                    {/* Action Input */}
                     <div className="dotted-line-horizontal p-4">
-                        <ActionInput />
+                        <ActionInput onSubmit={handleContinue} isLoading={isContinuing} />
                     </div>
                 </main>
 
-                {/* Right Sidebar - Protagonist */}
-                <aside className="w-56 shrink-0 overflow-y-auto p-4 border-r-0 dotted-border-l">
-                    <ProtagonistSidebar />
-                </aside>
+                {storyMode === "protagonist" && protagonist && (
+                    <aside className="hidden lg:block w-56 shrink-0 overflow-y-auto p-4 border-r-0 dotted-border-l">
+                        <ProtagonistSidebar protagonist={protagonist} />
+                    </aside>
+                )}
+
+                {storyMode === "protagonist" && protagonist && (
+                    <MobileDrawer className="py-4 px-8" open={showProtagonist} onClose={() => setShowProtagonist(false)} side="right">
+                        <ProtagonistSidebar protagonist={protagonist} />
+                    </MobileDrawer>
+                )}
             </div>
         </div >
     );
 }
 
-// Placeholder components - we'll build these next
-function CodexSidebar() {
+
+function CodexSidebar({ codex, protagonistName }: { codex: CodexEntry[]; protagonistName?: string }) {
+    const characters = codex.filter(c => c.entryType === "character");
+    const locations = codex.filter(c => c.entryType === "location");
+
     return (
         <div className="space-y-6">
             <SidebarSection title="CHARACTERS">
-                <SidebarItem>Kira (protagonist)</SidebarItem>
-                <SidebarItem>The Merchant</SidebarItem>
-                <SidebarItem>Sister Vela</SidebarItem>
+                {characters.map((character) => (
+                    <SidebarItem
+                        key={character.id}
+                        highlighted={protagonistName === character.name}
+                    >
+                        {character.name}
+                    </SidebarItem>
+                ))}
             </SidebarSection>
             <SidebarSection title="LOCATIONS">
-                <SidebarItem>The Chapel</SidebarItem>
-                <SidebarItem>Thornwood Forest</SidebarItem>
+                {locations.map((location) => (
+                    <SidebarItem key={location.id}>{location.name}</SidebarItem>
+                ))}
             </SidebarSection>
         </div>
     );
 }
 
-function ProtagonistSidebar() {
+function ProtagonistSidebar({ protagonist }: { protagonist?: Protagonist }) {
+    if (!protagonist) return null;
+
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="font-serif text-base text-foreground">Kira</h2>
+                <h2 className="text-base text-foreground">{protagonist.name}</h2>
                 <div className="mt-1 h-px w-full bg-line" />
             </div>
 
             <SidebarSection title="HEALTH">
-                <StatBar value={8} max={10} />
+                <SketchyBar value={protagonist.health} max={100} />
             </SidebarSection>
 
             <SidebarSection title="ENERGY">
-                <StatBar value={4} max={10} />
+                <SketchyBar value={protagonist.energy} max={100} />
             </SidebarSection>
 
             <SidebarSection title="LOCATION">
-                <p className="text-sm text-foreground">The Chapel</p>
+                <p className="text-sm text-foreground">{protagonist.currentLocation}</p>
             </SidebarSection>
 
             <SidebarSection title="TRAITS">
-                <SidebarItem>cautious</SidebarItem>
-                <SidebarItem>guilt-ridden</SidebarItem>
+                {protagonist.currentTraits.map((trait, index) => (
+                    <SidebarItem key={index}>{trait}</SidebarItem>
+                ))}
             </SidebarSection>
 
             <SidebarSection title="INVENTORY">
-                <SidebarItem>rusted key</SidebarItem>
-                <SidebarItem>torn letter</SidebarItem>
+                {protagonist.inventory.map((item, index) => (
+                    <SidebarItem key={index}>{item}</SidebarItem>
+                ))}
             </SidebarSection>
         </div>
     );
 }
 
-function StoryNarration() {
+function StoryNarration({ scenes }: { scenes: Scene[] }) {
     return (
-        <div className="font-serif text-lg text-foreground leading-[1.9]">
-            <p className="mb-6">
-                You step into the crumbling chapel. The light through stained glass falls in shards
-                across the altar, painting the dust-thick air in fragments of crimson and gold.
-            </p>
-            <p className="mb-6">
-                The merchant's words echo in your mind: "She went to pray. That was three days ago."
-            </p>
-            <p>
-                At the far end, past rows of rotting pews, you see a shape huddled beneath the stone
-                figure of a forgotten saint. It doesn't move.
-            </p>
+        <div className="space-y-6">
+            {scenes.map((scene) => (
+                <div key={scene.id}>
+                    {scene.userAction !== "[STORY_START]" && (
+                        <p className="text-accent italic mb-2">{scene.userAction}</p>
+                    )}
+                    <div className="text-foreground whitespace-pre-line">{scene.narration}</div>
+                </div>
+            ))}
         </div>
     );
 }
 
-function ActionInput() {
-    const [value, setValue] = React.useState("");
-    const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+function ActionInput({ onSubmit, isLoading }: { onSubmit: (action: string) => void; isLoading: boolean }) {
+    const [value, setValue] = useState("");
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    // Auto-resize textarea
-    React.useEffect(() => {
+    useEffect(() => {
         const textarea = textareaRef.current;
         if (textarea) {
             textarea.style.height = "auto";
@@ -124,50 +199,60 @@ function ActionInput() {
         }
     }, [value]);
 
+    const handleSubmit = () => {
+        if (!value.trim() || isLoading) return;
+        onSubmit(value.trim());
+        setValue("");
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit();
+        }
+    };
+
     return (
         <div className="mx-auto w-full max-w-2xl px-4 pb-6">
-            <div className="rounded-lg border border-line bg-surface p-3">
+            <div className="rounded-lg border border-line bg-surface p-3 flex gap-2">
                 <textarea
                     ref={textareaRef}
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     placeholder="What do you do?"
                     rows={1}
-                    className="w-full resize-none bg-transparent text-foreground placeholder:text-muted placeholder:italic focus:outline-none"
-                    style={{ maxHeight: "200px" }}
+                    disabled={isLoading}
+                    className="max-h-[200px] w-full resize-none bg-transparent text-foreground placeholder:text-muted placeholder:italic focus:outline-none disabled:opacity-50"
                 />
+                <button
+                    onClick={handleSubmit}
+                    disabled={!value.trim() || isLoading}
+                    className="px-3 py-1 border border-line text-muted hover:text-foreground hover:border-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                    {isLoading ? "..." : "→"}
+                </button>
             </div>
         </div>
     );
 }
 
-// Reusable sidebar components
 function SidebarSection({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <div>
-            <h3 className="font-mono text-xs uppercase tracking-wider text-muted">{title}</h3>
+            <h3 className="text-xs uppercase tracking-wider text-muted">{title}</h3>
             <div className="mt-2 space-y-1">{children}</div>
         </div>
     );
 }
 
-function SidebarItem({ children }: { children: React.ReactNode }) {
+function SidebarItem({ children, highlighted }: { children: React.ReactNode; highlighted?: boolean }) {
     return (
-        <p className="text-sm text-foreground/80 hover:text-foreground hover:underline cursor-pointer transition-colors">
+        <p className={cn(
+            "text-sm hover:text-foreground hover:underline cursor-pointer transition-colors",
+            highlighted ? "text-accent font-medium" : "text-foreground/80"
+        )}>
             · {children}
         </p>
-    );
-}
-
-function StatBar({ value, max }: { value: number; max: number }) {
-    const filled = Math.round((value / max) * 10);
-    const empty = 10 - filled;
-    return (
-        <div className="flex items-center gap-2">
-            <span className="font-mono text-sm text-foreground">
-                {"█".repeat(filled)}{"░".repeat(empty)}
-            </span>
-            <span className="font-mono text-xs text-muted">{value}/{max}</span>
-        </div>
     );
 }

@@ -2,11 +2,11 @@ import { Hono } from "hono";
 import { db, eq } from "@once/database";
 import { scenes, codexEntries, echoes, stories } from "@once/database/schema";
 import { success, error } from "@/lib/response";
-import { requireAuth } from "@/middleware/auth";
+import { requireAuth, type AuthVariables } from "@/middleware/auth";
 
-const scenesRouter = new Hono();
+const scenesRouter = new Hono<{ Variables: AuthVariables }>();
 
-scenesRouter.get("/:id/scenes", requireAuth, async (c) => {
+scenesRouter.get("/:id/scenes", async (c) => {
     const id = Number(c.req.param("id"));
 
     if (isNaN(id)) return error(c, "INVALID_ID");
@@ -15,8 +15,10 @@ scenesRouter.get("/:id/scenes", requireAuth, async (c) => {
     if (!story) return error(c, "NOT_FOUND", "Story not found");
 
     const user = c.get("user");
+    const isOwner = user && story.userId === user.id;
+    const isPublic = story.visibility === "public";
 
-    if (!user || story.userId !== user.id) {
+    if (!isOwner && !isPublic) {
         return error(c, "FORBIDDEN", "This story is private");
     }
 

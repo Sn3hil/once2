@@ -14,6 +14,31 @@
   --color-danger: var(--danger);
   --font-sans: var(--font-geist-sans);
   --font-serif: var(--font-playfair);
+  --font-playfair: var(--font-playfair);
+  --font-cormorant: var(--font-cormorant);
+  --font-crimson: var(--font-crimson);
+  --font-lora: var(--font-lora);
+  --font-garamond: var(--font-garamond);
+  --font-inter: var(--font-inter);
+  --font-dm-sans: var(--font-dm-sans);
+  --font-outfit: var(--font-outfit);
+  --font-sora: var(--font-sora);
+  --font-spectral: var(--font-spectral);
+  --font-literata: var(--font-literata);
+  --font-jetbrains: var(--font-jetbrains);
+  --font-ibm-mono: var(--font-ibm-mono);
+  --font-nunito: var(--font-nunito);
+  --font-source-sans: var(--font-source-sans);
+  --font-space-grotesk: var(--font-space-grotesk);
+  --font-caveat: var(--font-caveat);
+  --font-indie-flower: var(--font-indie-flower);
+  --font-press-start: var(--font-press-start);
+  --font-vt323: var(--font-vt323);
+  --font-permanent-marker: var(--font-permanent-marker);
+  --font-patrick-hand: var(--font-patrick-hand);
+  --font-orbitron: var(--font-orbitron);
+  --font-silkscreen: var(--font-silkscreen);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -36,20 +61,17 @@
 }
 
 .dark {
-  /* Black + Aether hints */
+  /* Black + Ember hints */
   --background: #0A0A0A;
-  --surface: #111111;
-  --foreground: #E8E4D9;
-  /* Aether as text color */
-  --muted: #8A8578;
-  /* Warm gray */
-  --muted-foreground: #8A8578;
-  --accent: #C9A227;
-  /* Warmer gold */
+  --surface: #141414;
+  --foreground: #EAEAEA;
+  --muted: #dad8d8;
+  --muted-foreground: #666666;
+  --accent: #FF4D00;
   --danger: #A34A4A;
-  --line: #3D3A34;
-  /* Aether-tinted dark line */
-  --charcoal: #111111;
+  --line: #3D2A1A;
+  /* Ember-tinted line (dark brown with orange) */
+  --charcoal: #141414;
 }
 
 @layer base {
@@ -94,16 +116,107 @@
 }
 
 /* Typography utilities */
-.font-serif {
-  font-family: var(--font-playfair);
+.font-playfair {
+  font-family: var(--font-playfair), serif;
+}
+
+.font-cormorant {
+  font-family: var(--font-cormorant), serif;
+}
+
+.font-crimson {
+  font-family: var(--font-crimson), serif;
+}
+
+.font-lora {
+  font-family: var(--font-lora), serif;
+}
+
+.font-garamond {
+  font-family: var(--font-garamond), serif;
 }
 
 .text-accent {
   color: var(--accent);
 }
 
-/* Selection */
 ::selection {
   background: var(--accent);
   color: var(--background);
+}
+
+.font-inter {
+  font-family: var(--font-inter), sans-serif;
+}
+
+.font-dm-sans {
+  font-family: var(--font-dm-sans), sans-serif;
+}
+
+.font-outfit {
+  font-family: var(--font-outfit), sans-serif;
+}
+
+.font-sora {
+  font-family: var(--font-sora), sans-serif;
+}
+
+.font-nunito {
+  font-family: var(--font-nunito), sans-serif;
+}
+
+.font-source-sans {
+  font-family: var(--font-source-sans), sans-serif;
+}
+
+.font-spectral {
+  font-family: var(--font-spectral), serif;
+}
+
+.font-literata {
+  font-family: var(--font-literata), serif;
+}
+
+.font-jetbrains {
+  font-family: var(--font-jetbrains), monospace;
+}
+
+.font-ibm-mono {
+  font-family: var(--font-ibm-mono), monospace;
+}
+
+.font-space-grotesk {
+  font-family: var(--font-space-grotesk), sans-serif;
+}
+
+.font-caveat {
+  font-family: var(--font-caveat), cursive;
+}
+
+.font-indie-flower {
+  font-family: var(--font-indie-flower), cursive;
+}
+
+.font-press-start {
+  font-family: var(--font-press-start), monospace;
+}
+
+.font-vt323 {
+  font-family: var(--font-vt323), monospace;
+}
+
+.font-permanent-marker {
+  font-family: var(--font-permanent-marker), cursive;
+}
+
+.font-patrick-hand {
+  font-family: var(--font-patrick-hand), cursive;
+}
+
+.font-orbitron {
+  font-family: var(--font-orbitron), sans-serif;
+}
+
+.font-silkscreen {
+  font-family: var(--font-silkscreen), monospace;
 }

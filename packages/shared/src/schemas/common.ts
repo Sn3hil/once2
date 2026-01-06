@@ -15,7 +15,7 @@ export const storyModeSchema = z.enum([
 
 export const storyStatusSchema = z.enum([
     "active",
-    "complete",
+    "completed",
     "abandoned"
 ]);
 
