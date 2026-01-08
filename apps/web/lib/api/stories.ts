@@ -1,4 +1,4 @@
-import { CodexEntry, Scene, Story } from "@once/shared";
+import { CodexEntry, Scene, Story, Analytics } from "@once/shared";
 import { apiClient } from "./client";
 import type { CreateStoryInput } from "@once/shared/schemas";
 
@@ -26,5 +26,6 @@ export const storiesApi = {
         method: "POST",
         body: JSON.stringify({ action })
     }),
-    getCodex: (id: string) => apiClient<CodexEntry[]>(`/api/stories/${id}/codex`)
+    getCodex: (id: string) => apiClient<CodexEntry[]>(`/api/stories/${id}/codex`),
+    getAnalytics: () => apiClient<Analytics>('/api/stories/analytics')
 }

@@ -6,9 +6,11 @@ import forkRouter from "./fork";
 import deferredRouter from "./deferred";
 import protagonistsRouter from "./protagonists";
 import social from "./social";
+import analyticsRouter from "./analytics";
 
 const storiesRouter = new Hono();
 
+storiesRouter.route("/", analyticsRouter);
 storiesRouter.route("/", crudRouter);
 storiesRouter.route("/", scenesRouter);
 storiesRouter.route("/", continueRouter);

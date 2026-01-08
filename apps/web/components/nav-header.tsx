@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Compass, PlusCircle, Users } from "lucide-react";
+import { BarChart2, BookOpen, Compass, PlusCircle, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
     { href: "/discover", label: "Discover", icon: Compass },
     { href: "/create", label: "Create", icon: PlusCircle },
     { href: "/vault", label: "Vault", icon: Users },
+    { href: "/analytics", label: "Analytics", icon: BarChart2 }
 ];
 
 export function NavHeader() {

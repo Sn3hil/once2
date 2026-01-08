@@ -29,8 +29,7 @@ export function Library() {
 
     return (
         <>
-            <NavHeader />
-            <div className="min-h-screen bg-background pt-14">
+            <div className="min-h-screen bg-background">
                 <header className="dotted-border-b px-4 md:px-8 py-6">
                     <h1 className="text-2xl text-foreground">Your Library</h1>
                     <p className="mt-1 text-sm text-muted">Stories you've begun</p>

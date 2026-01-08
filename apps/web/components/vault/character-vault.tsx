@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { NavHeader } from "@/components/nav-header";
-import { Plus, Users } from "lucide-react";
+import { Pen, Plus, Users } from "lucide-react";
 import { VaultCard } from "./vault-card";
 import { CreateCharacterDialog } from "./create-character-dialog";
 import { vaultApi } from "@/lib/api";
@@ -31,19 +31,17 @@ export function CharacterVault() {
 
     return (
         <>
-            <NavHeader />
-            <div className="min-h-screen bg-background pt-14">
+            <div className="min-h-screen bg-background">
                 <header className="dotted-border-b px-4 md:px-8 py-6 flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl text-foreground">Character Vault</h1>
-                        <p className="mt-1 text-sm text-muted hidden sm:block">Saved characters you can use in any story</p>
+                        <p className="mt-1 text-sm text-muted">Saved characters you can use in any story</p>
                     </div>
                     <button
                         onClick={() => setShowCreateDialog(true)}
-                        className="flex items-center gap-2 px-3 py-2 border border-line text-foreground hover:border-foreground transition-colors cursor-pointer"
+                        className="fixed bottom-24 group right-4 md:right-24 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-accent shadow-lg transition-colors cursor-pointer"
                     >
-                        <Plus className="size-4" />
-                        <span className="hidden sm:inline">New Character</span>
+                        <Pen className="size-5 text-white group-hover:size-6 transition-all ease-in-out" />
                     </button>
                 </header>
 

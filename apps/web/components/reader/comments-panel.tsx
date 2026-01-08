@@ -12,6 +12,8 @@ interface Comment {
     createdAt: string;
 }
 
+// Not being used anywhere currently
+
 // Mock comments
 const mockComments: Comment[] = [
     {

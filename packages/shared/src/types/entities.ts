@@ -51,8 +51,8 @@ export interface Story {
     forkedAtSceneId?: number;
     protagonist?: Protagonist[];
     scenes?: Scene[];
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface VaultCharacter {
@@ -76,4 +76,29 @@ export interface CodexEntry {
     description?: string;
     metadata?: Record<string, unknown>;
     firstMentionedSceneId?: number;
+}
+
+export interface Analytics {
+    totals: {
+        upvotes: number;
+        notes: number;
+        forks: number;
+        published: number;
+    }
+    stories: Array<{
+        id: number;
+        title: string;
+        upvotes: number;
+        notesCount: number;
+        forkCount: number;
+        turnCount: number;
+        createdAt: string;
+    }>;
+    recentNotes: Array<{
+        id: number;
+        storyId: number;
+        storyTitle: string;
+        content: string;
+        createdAt: string;
+    }>
 }

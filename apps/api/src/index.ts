@@ -41,7 +41,7 @@ app.notFound((c) => {
     return error(c, "NOT_FOUND", "Not found");
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3001;
 
 console.log(`Server starting on port ${PORT}`);
 

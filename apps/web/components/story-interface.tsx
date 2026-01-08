@@ -49,6 +49,14 @@ export function StoryInterface({ storyId }: { storyId: string }) {
         setIsContinuing(false);
     };
 
+    if (isLoading) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-background">
+                <p className="text-muted">Loading story...</p>
+            </div>
+        );
+    }
+
     return (
         <div className="flex h-screen flex-col bg-background">
             <header className="flex h-14 items-center justify-center dotted-border-b gap-2 md:gap-4">

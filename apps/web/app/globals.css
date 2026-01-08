@@ -47,17 +47,23 @@
 :root {
   --radius: 0.5rem;
 
-  /* Aether - Light Mode */
-  --background: #E8E4D9;
-  --surface: #F5F2EA;
-  --foreground: #1A1714;
-  --muted: #7A6F5F;
-  --muted-foreground: #7A6F5F;
-  --accent: #8B6914;
-  --danger: #8B3A3A;
-  --line: #C5BFB0;
-
-  --charcoal: #1A1714;
+  /* Ocean - Light Mode */
+  --background: #F0F4F8;
+  /* Soft blue-grey */
+  --surface: #FFFFFF;
+  /* Clean white */
+  --foreground: #586c81;
+  /* Deep navy text */
+  --muted: #5A7A8A;
+  /* Muted blue-grey */
+  --muted-foreground: #5A7A8A;
+  --accent: #00b4d8;
+  /* Ocean blue */
+  --danger: #C1121F;
+  /* Red (keep for errors) */
+  --line: #B8D4E3;
+  /* Light blue-grey */
+  --charcoal: #1A2B3C;
 }
 
 .dark {

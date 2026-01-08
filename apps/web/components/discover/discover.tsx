@@ -33,8 +33,7 @@ export function Discover() {
 
     return (
         <>
-            <NavHeader />
-            <div className="h-screen flex flex-col bg-background pt-14">
+            <div className="h-screen flex flex-col bg-background">
                 <header className="dotted-border-b px-4 md:px-8 py-6 flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl text-foreground">Discover</h1>
@@ -42,10 +41,9 @@ export function Discover() {
                     </div>
                     <button
                         onClick={() => setShowFilters(true)}
-                        className="lg:hidden flex items-center gap-2 px-3 py-1.5 border border-line text-muted hover:text-foreground cursor-pointer"
+                        className="lg:hidden fixed bottom-24 group right-4 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-accent shadow-lg transition-colors cursor-pointer"
                     >
-                        <Filter className="size-4" />
-                        <span className="text-sm">Filters</span>
+                        <Filter className="size-5 text-white group-hover:size-6 transition-all ease-in-out" />
                     </button>
                 </header>
 
@@ -56,7 +54,7 @@ export function Discover() {
                                 <SortButton
                                     active={sortBy === "hot"}
                                     onClick={() => setSortBy("hot")}
-                                    icon={<Flame className="size-4" />}
+                                    icon={<Flame className={cn("size-4", sortBy === "hot" && "fill-accent")} />}
                                     label="Hot"
                                 />
                                 <SortButton
