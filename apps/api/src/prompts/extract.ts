@@ -3,30 +3,30 @@ import { z } from "zod";
 export const extractedEntitiesSchema = z.object({
     characters: z.array(z.object({
         name: z.string(),
-        description: z.string().optional(),
-        isNew: z.boolean().optional(),
+        description: z.string().nullable(),
+        isNew: z.boolean().nullable(),
     })),
     locations: z.array(z.object({
         name: z.string(),
-        description: z.string().optional(),
+        description: z.string().nullable(),
     })),
     objects: z.array(z.object({
         name: z.string(),
-        description: z.string().optional(),
-        significance: z.string().optional(),
-        ownedBy: z.string().optional(),
+        description: z.string().nullable(),
+        significance: z.string().nullable(),
+        ownedBy: z.string().nullable(),
     })),
     relationships: z.array(z.object({
         from: z.string(),
         to: z.string(),
         type: z.string(),
-        reason: z.string().optional(),
+        reason: z.string().nullable(),
     })),
     events: z.array(z.object({
         description: z.string(),
         who: z.array(z.string()),
-        where: z.string().optional(),
-        causedBy: z.string().optional(),
+        where: z.string().nullable(),
+        causedBy: z.string().nullable(),
     })),
 });
 

@@ -30,6 +30,10 @@ export const ERROR_CODES = {
     INTERNAL_ERROR: { status: 500, message: "Internal server error" },
     LLM_ERROR: { status: 500, message: "AI service error" },
     DATABASE_ERROR: { status: 500, message: "Database error" },
+
+    // Client-side errors
+    NETWORK_ERROR: { status: 0, message: "Network error" },
+    UNKNOWN: { status: 500, message: "Unknown error" },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CODES;

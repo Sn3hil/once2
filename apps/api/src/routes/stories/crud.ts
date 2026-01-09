@@ -6,7 +6,8 @@ import { createStorySchema, openSceneSchema } from "@once/shared/schemas";
 import { buildSystemPrompt } from "@/prompts/system";
 import { buildInitializePrompt } from "@/prompts/initialize";
 import { generateStructured } from "@/services/llm";
-import { storeMemory } from "@/services/memory";
+import { storySceneMemory } from "@/services/memory";
+import { extractEntities } from "@/services/extraction";
 import { requireAuth, type AuthVariables } from "@/middleware/auth";
 
 const crudRouter = new Hono<{ Variables: AuthVariables }>();
@@ -142,7 +143,15 @@ crudRouter.post("/", requireAuth, async (c) => {
             protagonistId,
         });
 
-        storeMemory([{ role: 'assistant', content: openingScene.narration }], user.id).catch(console.error);
+        extractEntities(openingScene.narration, protagonist?.name || "protagonist")
+            .then(entities => storySceneMemory(
+                "1",
+                openingScene.narration,
+                newStory.id,
+                1,
+                entities
+            ))
+            .catch(console.error);
 
         const storyWithRelations = await db.query.stories.findFirst({
             where: eq(stories.id, newStory.id),

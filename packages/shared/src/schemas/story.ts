@@ -7,7 +7,7 @@ export const createStorySchema = z.object({
     genre: z.string().min(1, "Genre is required").max(20, "Genre can not be more than 20 characters"),
     narrativeStance: narrativeStanceSchema.default("heroic"),
     storyMode: storyModeSchema.default("protagonist"),
-    storyIdea: z.string().min(10, "Story idea/ plot must be at least 10 characters").max(200, "Story Idea/ plot can not be more than 200 characters").optional(),
+    storyIdea: z.string().min(10, "Story idea/ plot must be at least 10 characters").max(500, "Story Idea/ plot can not be more than 500 characters").optional(),
     protagonist: z.object({
         name: z.string().min(1).max(100),
         description: z.string().optional(),

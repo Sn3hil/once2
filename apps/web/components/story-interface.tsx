@@ -182,7 +182,7 @@ function ProtagonistSidebar({ protagonist }: { protagonist?: Protagonist }) {
 
 function StoryNarration({ scenes }: { scenes: Scene[] }) {
     return (
-        <div className="space-y-6">
+        <div className="space-y-6" data-lenis-prevent>
             {scenes.map((scene) => (
                 <div key={scene.id}>
                     {scene.userAction !== "[STORY_START]" && (
