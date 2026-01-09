@@ -31,6 +31,7 @@ import "./globals.css";
 import { FontProvider } from "@/components/font-provider";
 import { NavHeader } from "@/components/nav-header";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "next-themes";
 
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair", display: "swap" });
 const cormorant = Cormorant_Garamond({ subsets: ["latin"], variable: "--font-cormorant", weight: ["400", "500", "600"], display: "swap" });
@@ -69,26 +70,32 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${playfair.variable} ${cormorant.variable} ${crimson.variable} ${lora.variable} ${garamond.variable} ${inter.variable} ${dmSans.variable} ${outfit.variable} ${sora.variable} ${spectral.variable} ${literata.variable} ${jetbrains.variable} ${ibmMono.variable} ${nunito.variable} ${sourceSans.variable} ${spaceGrotesk.variable} ${caveat.variable} ${indieFlower.variable} ${pressStart.variable} ${vt323.variable} ${permanentMarker.variable} ${patrickHand.variable} ${orbitron.variable} ${silkscreen.variable} font-sans antialiased`}
       >
-        <LenisProvider>
-          {/* <EmberCursor /> */}
-          <FontProvider>
-            <Toaster
-              position="bottom-right"
-              toastOptions={{
-                style: {
-                  background: 'var(--surface)',
-                  border: '1px solid var(--line)',
-                  color: 'var(--foreground)',
-                },
-              }}
-            />
-            {children}
-          </FontProvider>
-        </LenisProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+        >
+          <LenisProvider>
+            {/* <EmberCursor /> */}
+            <FontProvider>
+              <Toaster
+                position="bottom-right"
+                toastOptions={{
+                  style: {
+                    background: 'var(--surface)',
+                    border: '1px solid var(--line)',
+                    color: 'var(--foreground)',
+                  },
+                }}
+              />
+              {children}
+            </FontProvider>
+          </LenisProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

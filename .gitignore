@@ -39,4 +39,5 @@ yarn-error.log*
 
 data/
 docs
+
 /index.ts

@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
-import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 
 const seededRandom = (seed: number) => {
@@ -180,23 +181,18 @@ function SmokeCloud() {
 }
 
 export function CampfireToggle() {
-    const [isDark, setIsDark] = useState(true);
-
-    useEffect(() => {
-        // Check initial theme
-        const html = document.documentElement;
-        setIsDark(html.classList.contains("dark"));
-    }, []);
+    const { theme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
 
     const toggleTheme = () => {
-        const html = document.documentElement;
-        if (isDark) {
-            html.classList.remove("dark");
-        } else {
-            html.classList.add("dark");
-        }
-        setIsDark(!isDark);
+        setTheme(theme === "dark" ? "light" : "dark");
     };
+
+    useEffect(() => {
+        setMounted(true)
+    })
+
+    if (!mounted) return null;
 
     return (
         <motion.button
@@ -209,7 +205,7 @@ export function CampfireToggle() {
                 <CampfireBase />
 
                 <AnimatePresence mode="wait">
-                    {isDark ? (
+                    {theme === "dark" ? (
                         <motion.div
                             key="fire"
                             initial={{ opacity: 0, scale: 0.8 }}

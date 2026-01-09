@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
-import { FloatingNav } from "@/components/floating-nav";
 import { CampfireToggle } from "@/components/campfire-toggle";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
@@ -31,7 +30,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return (
         <>
             <main>{children}</main>
-            <FloatingNav />
             <CampfireToggle />
         </>
     );
