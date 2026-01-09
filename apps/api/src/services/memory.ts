@@ -1,113 +1,186 @@
-// import { Memory, SearchResult } from "mem0ai/oss";
+import { storeSceneVector, searchSimilarScenes } from "./vector";
+import {
+    storeCharacter,
+    storeEvent,
+    storeLocation,
+    storeObject,
+    storeRelationship,
+    getCharacterRelationships,
+    getLocationHistory,
+    type GraphCharacter,
+    type GraphEvent,
+    type GraphLocation,
+    type GraphObject,
+    type GraphRelationship
+} from "./graph";
+import { db, eq, desc } from "@once/database";
+import { scenes } from "@once/database";
 
-// const config = {
-//     enableGraph: true,
-//     graphStore: {
-//         provider: "neo4j",
-//         config: {
-//             url: process.env.NEO4J_URL || "bolt://localhost:7687",
-//             username: process.env.NEO4J_USERNAME!,
-//             password: process.env.NEO4J_PASSWORD!,
-//             database: "neo4j",
-//         },
-//     },
-//     llm: {
-//         provider: "openai",
-//         config: { model: "gpt-4o-mini" }
-//     },
-//     vector_store: {
-//         provider: "qdrant",
-//         config: {
-//             collection_name: "once_memories",
-//             host: process.env.QDRANT_HOST || "localhost",
-//             port: parseInt(process.env.QDRANT_PORT || "6333"),
-//             embedding_model_dims: 1536,
-//         }
-//     },
-//     embedder: {
-//         provider: "openai",
-//         config: {
-//             model: "text-embedding-3-small",
-//             embedding_dims: 1536
-//         }
-//     }
-// };
-
-// const memory = new Memory(config);
-
-// type Message = { role: "user" | "assistant"; content: string };
-
-// export async function storeMemory(messages: Message[], userId: string) {
-//     await memory.add(messages, { userId });
-// }
-
-// export async function searchMemory(query: string, userId: string, limit = 10): Promise<SearchResult> {
-//     return memory.search(query, { userId, limit });
-// }
-
-import type { SearchResult } from "mem0ai/oss";
-
-type Message = { role: "user" | "assistant"; content: string };
-
-let memoryInstance: any = null;
-
-async function getMemory() {
-    if (memoryInstance) return memoryInstance;
-
-    const { Memory } = await import("mem0ai/oss");
-
-    const config = {
-        enableGraph: true,
-        graphStore: {
-            provider: "neo4j",
-            config: {
-                url: process.env.NEO4J_URL || "bolt://localhost:7687",
-                username: process.env.NEO4J_USERNAME!,
-                password: process.env.NEO4J_PASSWORD!,
-                database: "neo4j",
-            },
-        },
-        llm: {
-            provider: "openai",
-            config: { model: "gpt-4o-mini" }
-        },
-        vector_store: {
-            provider: "qdrant",
-            config: {
-                collection_name: "once_memories",
-                host: process.env.QDRANT_HOST || "localhost",
-                port: parseInt(process.env.QDRANT_PORT || "6333"),
-                embedding_model_dims: 1536,
-            }
-        },
-        embedder: {
-            provider: "openai",
-            config: {
-                model: "text-embedding-3-small",
-                embedding_dims: 1536
-            }
-        }
-    };
-
-    memoryInstance = new Memory(config);
-    return memoryInstance;
+export interface ExtractedEntities {
+    characters: Array<{
+        name: string;
+        description?: string;
+        isNew?: boolean;
+    }>;
+    locations: Array<{
+        name: string;
+        description?: string;
+    }>;
+    objects: Array<{
+        name: string;
+        description?: string;
+        significance?: string;
+        ownedBy?: string
+    }>;
+    relationships: Array<{
+        from: string;
+        to: string;
+        type: string;
+        reason?: string
+    }>;
+    events: Array<{
+        description: string;
+        who: string[];
+        where?: string;
+        causedBy?: string;
+    }>;
 }
 
-export async function storeMemory(messages: Message[], userId: string) {
+export async function storySceneMemory(
+    sceneId: string,
+    narration: string,
+    storyId: number,
+    turnNumber: number,
+    entities: ExtractedEntities
+) {
     try {
-        const memory = await getMemory();
-        await memory.add(messages, { userId });
-    } catch (err) {
-        console.error("Memory store error:", err);
+        await storeSceneVector(sceneId, narration, storyId);
+
+        for (const character of entities.characters) {
+            await storeCharacter({
+                name: character.name,
+                description: character.description,
+                storyId,
+                introducedAt: turnNumber
+            })
+        }
+
+        for (const location of entities.locations) {
+            await storeLocation({
+                name: location.name,
+                description: location.description,
+                storyId,
+                firstVisitedAt: turnNumber
+            })
+        }
+
+        for (const object of entities.objects) {
+            await storeObject({
+                name: object.name,
+                description: object.description || "",
+                storyId,
+                significance: object.significance,
+                ownedBy: object.ownedBy,
+            });
+        }
+
+        for (const relation of entities.relationships) {
+            await storeRelationship(
+                {
+                    from: relation.from,
+                    to: relation.to,
+                    type: relation.type.toUpperCase().replace(/\s+/g, "_"),
+                    since: turnNumber,
+                    reason: relation.reason,
+                },
+                storyId
+            );
+        }
+
+        for (const event of entities.events) {
+            await storeEvent({
+                id: `${sceneId}-${event.description.slice(0, 20)}`,
+                description: event.description,
+                storyId,
+                sceneId: turnNumber,
+                who: event.who,
+                where: event.where,
+                causedBy: event.causedBy,
+            });
+        }
+    } catch (error) {
+        console.error("Error storing scene memory:", error);
     }
 }
 
-export async function searchMemory(query: string, userId: string, limit = 10): Promise<SearchResult> {
+interface buildContextResponse {
+    similarScenes: Array<{
+        narration: string,
+        score: number
+    }>;
+    characterRelationships: Array<{
+        name: string,
+        type: string,
+        reason?: string
+    }>;
+    locationHistory: Array<{
+        description: string;
+        sceneId: number;
+    }>
+}
+
+export async function buildContext(storyId: number, userAction: string, protagonistName: string, currentLocation?: string): Promise<buildContextResponse> {
     try {
-        const memory = await getMemory();
-        return memory.search(query, { userId, limit });
+        const similarScenes = await searchSimilarScenes(userAction, storyId, 5);
+        const characterRelationships = await getCharacterRelationships(protagonistName, storyId);
+
+        // what if particular scene is not about the protagonists , like building up an event which will eventually affect the story ,
+        // like how GOT stories are , bunch of things happening at various places , which eventually meets at the end or at some part of the story
+
+        let locationHistory: Array<{ description: string; sceneId: number; }> = [];
+        if (currentLocation) {
+            const history = await getLocationHistory(currentLocation, storyId, 5);
+            locationHistory = history.map((h) => ({
+                description: h.description,
+                sceneId: h.sceneId
+            }));
+        }
+
+        return {
+            similarScenes: similarScenes.map((s) => ({
+                narration: s.narration,
+                score: s.score
+            })),
+            characterRelationships,
+            locationHistory
+        }
     } catch (err) {
-        console.error("Memory search error:", err);
-        return { results: [] } as SearchResult;
+        console.error("Error building context:", err)
+        return {
+            similarScenes: [],
+            characterRelationships: [],
+            locationHistory: []
+        }
+    }
+}
+
+export async function getScenes(sceneIds: number[], storyId: number): Promise<Array<{ turnNumber: number; narration: string }>> {
+    try {
+        const results = await db
+            .select({
+                turnNumber: scenes.turnNumber,
+                narration: scenes.narration
+            })
+            .from(scenes)
+            .where(eq(scenes.storyId, storyId))
+            .orderBy(desc(scenes.turnNumber))
+
+        return results.filter((s) => sceneIds.includes(s.turnNumber)).map((s) => ({
+            turnNumber: s.turnNumber,
+            narration: s.narration
+        }))
+    } catch (error) {
+        console.error("Error getting scenes from db:", error);
+        return []
     }
 }

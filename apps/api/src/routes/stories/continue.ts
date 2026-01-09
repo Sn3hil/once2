@@ -8,9 +8,10 @@ import { generateContinuation } from "@/services/story";
 import { updateProtagonistState } from "@/services/protagonist";
 import { streamSSE } from "hono/streaming";
 import { fakeStream } from "@/lib/stream";
-import { searchMemory, storeMemory } from "@/services/memory";
+import { storySceneMemory, buildContext } from "@/services/memory";
 import { evaluateDeferredCharacters, markCharacterIntroduced } from "@/services/deferred";
 import { requireAuth } from "@/middleware/auth";
+import { extractEntities } from "@/services/extraction";
 
 const continueRouter = new Hono();
 
@@ -83,8 +84,13 @@ continueRouter.post("/:id/continue", requireAuth, async (c) => {
             recentNarration: lastScene?.narration || "",
         });
 
-        const memoryResult = await searchMemory(userAction, user.id);
-        const factualKnowledge = memoryResult.results?.map((m: any) => m.content) || [];
+        const memoryContext = await buildContext(
+            storyId,
+            userAction,
+            activeProtagonist?.name || "protagonist",
+            activeProtagonist?.currentLocation
+        );
+        const factualKnowledge = memoryContext.similarScenes.map(s => s.narration);
 
         const response = await generateContinuation({
             narrativeStance: story.narrativeStance,
@@ -145,10 +151,15 @@ continueRouter.post("/:id/continue", requireAuth, async (c) => {
             await markCharacterIntroduced(char.id, newScene.id);
         }
 
-        storeMemory([
-            { role: 'user', content: userAction },
-            { role: 'assistant', content: response.narration }
-        ], user.id).catch(console.error);
+        extractEntities(response.narration, activeProtagonist?.name || "protagonist")
+            .then(entities => storySceneMemory(
+                newScene.id.toString(),
+                response.narration,
+                storyId,
+                newTurnNumber,
+                entities
+            ))
+            .catch(console.error);
 
         await resolveEchoes(triggeredEchoes.map(e => e.id), newScene.id);
 
@@ -234,8 +245,13 @@ continueRouter.post("/:id/continue/stream", requireAuth, async (c) => {
                 recentNarration: lastScene?.narration || "",
             });
 
-            const memoryResult = await searchMemory(userAction, user.id);
-            const factualKnowledge = memoryResult.results?.map((m: any) => m.content) || [];
+            const memoryContext = await buildContext(
+                storyId,
+                userAction,
+                activeProtagonist?.name || "protagonist",
+                activeProtagonist?.currentLocation
+            );
+            const factualKnowledge = memoryContext.similarScenes.map(s => s.narration);
 
             const response = await generateContinuation({
                 narrativeStance: story.narrativeStance,
@@ -297,10 +313,15 @@ continueRouter.post("/:id/continue/stream", requireAuth, async (c) => {
                 await markCharacterIntroduced(char.id, newScene.id);
             }
 
-            storeMemory([
-                { role: 'user', content: userAction },
-                { role: 'assistant', content: response.narration }
-            ], user.id).catch(console.error);
+            extractEntities(response.narration, activeProtagonist?.name || "protagonist")
+                .then(entities => storySceneMemory(
+                    newScene.id.toString(),
+                    response.narration,
+                    storyId,
+                    newTurnNumber,
+                    entities
+                ))
+                .catch(console.error);
 
             await resolveEchoes(triggeredEchoes.map(e => e.id), newScene.id);
 

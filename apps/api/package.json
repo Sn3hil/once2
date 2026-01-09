@@ -12,9 +12,10 @@
         "@hono/node-server": "^1.13.8",
         "@once/database": "workspace:*",
         "@once/shared": "workspace:*",
+        "@qdrant/js-client-rest": "^1.16.2",
         "dotenv": "^17.2.3",
         "hono": "^4.7.5",
-        "mem0ai": "^2.1.38",
+        "neo4j-driver": "^6.0.1",
         "openai": "^6.15.0",
         "zod": "^3.24.4"
     },
