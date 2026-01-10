@@ -25,7 +25,7 @@ interface CurrentProtagonist {
 export async function updateProtagonistState(
     protagonist: CurrentProtagonist,
     updates: ProtagonistUpdates
-) {
+): Promise<CurrentProtagonist> {
     let newTraits = protagonist.currentTraits || [];
     if (updates.addTraits) newTraits = [...newTraits, ...updates.addTraits];
     if (updates.removeTraits) newTraits = newTraits.filter(t => !updates.removeTraits!.includes(t));
@@ -36,6 +36,16 @@ export async function updateProtagonistState(
 
     let newScars = protagonist.scars || [];
     if (updates.addScars) newScars = [...newScars, ...updates.addScars];
+
+    const updatedState = {
+        id: protagonist.id,
+        health: updates.health ?? protagonist.health,
+        energy: updates.energy ?? protagonist.energy,
+        currentLocation: updates.location ?? protagonist.currentLocation,
+        currentTraits: newTraits,
+        inventory: newInventory,
+        scars: newScars,
+    };
 
     await db.update(protagonists)
         .set({
@@ -48,4 +58,6 @@ export async function updateProtagonistState(
             updatedAt: new Date(),
         })
         .where(eq(protagonists.id, protagonist.id));
+
+    return updatedState;
 }

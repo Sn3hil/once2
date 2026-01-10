@@ -23,7 +23,7 @@ export function StoryCard({ story }: { story: Story }) {
                     <span className="flex items-center gap-1">
                         {/* TODO: change icon later */}
                         <BookOpen className="size-3" />
-                        {story.turnCount.toLocaleString()} words
+                        {story.turnCount.toLocaleString()} turns
                     </span>
                     <span className="flex items-center gap-1">
                         <Clock className="size-3" />

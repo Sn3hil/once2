@@ -83,7 +83,7 @@ export function CreateStory() {
                     <p className="mt-1 text-sm text-muted">Every tale starts with a single word</p>
                 </header>
 
-                <div className="mx-auto max-w-2xl px-4 md:px-8 py-10 space-y-8">
+                <div className="mx-auto max-w-2xl px-4 md:px-8 py-10 pb-30 space-y-8">
                     <FormField label="Story Title">
                         <input
                             type="text"

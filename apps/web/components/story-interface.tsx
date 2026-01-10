@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import FontDropdown from "./font-dropdown";
 import { SketchyBar } from "@/components/sketchy-bar";
-import { BookOpen, User } from "lucide-react";
+import { BookOpen, User, Wand } from "lucide-react";
 import MobileDrawer from "./mobile-drawer";
 import { storiesApi } from "@/lib/api";
 import type { Story, Scene, Protagonist, CodexEntry } from "@once/shared";
@@ -286,7 +286,7 @@ function ActionInput({ onSubmit, isLoading }: { onSubmit: (action: string) => vo
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="What do you do?"
+                    placeholder="What next?"
                     rows={1}
                     disabled={isLoading}
                     className="max-h-[200px] w-full resize-none bg-transparent text-foreground placeholder:text-muted placeholder:italic focus:outline-none disabled:opacity-50"
@@ -294,9 +294,9 @@ function ActionInput({ onSubmit, isLoading }: { onSubmit: (action: string) => vo
                 <button
                     onClick={handleSubmit}
                     disabled={!value.trim() || isLoading}
-                    className="px-3 py-1 border border-line text-muted hover:text-foreground hover:border-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    className="w-10 h-10 shrink-0 flex items-center justify-center border border-line text-muted rounded-md hover:text-foreground hover:border-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
-                    {isLoading ? "..." : "→"}
+                    {isLoading ? "..." : <Wand className="size-5" />}
                 </button>
             </div>
         </div>

@@ -118,8 +118,10 @@ continueRouter.post("/:id/continue", requireAuth, async (c) => {
 
         const newTurnNumber = (story.turnCount || 0) + 1;
 
+        let updatedProtagonist = activeProtagonist;
         if (activeProtagonist && response.protagonistUpdates) {
-            await updateProtagonistState(activeProtagonist, response.protagonistUpdates);
+            const updates = await updateProtagonistState(activeProtagonist, response.protagonistUpdates);
+            updatedProtagonist = { ...activeProtagonist, ...updates }
         }
 
         const [newScene] = await db.insert(scenes).values({
@@ -127,17 +129,17 @@ continueRouter.post("/:id/continue", requireAuth, async (c) => {
             turnNumber: newTurnNumber,
             userAction,
             narration: response.narration,
-            protagonistId: activeProtagonist?.id,
-            protagonistSnapshot: activeProtagonist ? {
-                name: activeProtagonist.name,
-                description: activeProtagonist.description,
-                health: activeProtagonist.health,
-                energy: activeProtagonist.energy,
-                currentLocation: activeProtagonist.currentLocation,
-                baseTraits: activeProtagonist.baseTraits,
-                currentTraits: activeProtagonist.currentTraits,
-                inventory: activeProtagonist.inventory,
-                scars: activeProtagonist.scars,
+            protagonistId: updatedProtagonist?.id,
+            protagonistSnapshot: updatedProtagonist ? {
+                name: updatedProtagonist.name,
+                description: updatedProtagonist.description,
+                health: updatedProtagonist.health,
+                energy: updatedProtagonist.energy,
+                currentLocation: updatedProtagonist.currentLocation,
+                baseTraits: updatedProtagonist.baseTraits,
+                currentTraits: updatedProtagonist.currentTraits,
+                inventory: updatedProtagonist.inventory,
+                scars: updatedProtagonist.scars,
             } : null,
         }).returning();
 
@@ -279,8 +281,10 @@ continueRouter.post("/:id/continue/stream", requireAuth, async (c) => {
 
             const newTurnNumber = (story.turnCount || 0) + 1;
 
+            let updatedProtagonist = activeProtagonist;
             if (activeProtagonist && response.protagonistUpdates) {
-                await updateProtagonistState(activeProtagonist, response.protagonistUpdates);
+                const updates = await updateProtagonistState(activeProtagonist, response.protagonistUpdates);
+                updatedProtagonist = { ...activeProtagonist, ...updates }
             }
 
             const [newScene] = await db.insert(scenes).values({
@@ -289,16 +293,16 @@ continueRouter.post("/:id/continue/stream", requireAuth, async (c) => {
                 userAction,
                 narration: response.narration,
                 protagonistId: activeProtagonist?.id,
-                protagonistSnapshot: activeProtagonist ? {
-                    name: activeProtagonist.name,
-                    description: activeProtagonist.description,
-                    health: activeProtagonist.health,
-                    energy: activeProtagonist.energy,
-                    currentLocation: activeProtagonist.currentLocation,
-                    baseTraits: activeProtagonist.baseTraits,
-                    currentTraits: activeProtagonist.currentTraits,
-                    inventory: activeProtagonist.inventory,
-                    scars: activeProtagonist.scars,
+                protagonistSnapshot: updatedProtagonist ? {
+                    name: updatedProtagonist.name,
+                    description: updatedProtagonist.description,
+                    health: updatedProtagonist.health,
+                    energy: updatedProtagonist.energy,
+                    currentLocation: updatedProtagonist.currentLocation,
+                    baseTraits: updatedProtagonist.baseTraits,
+                    currentTraits: updatedProtagonist.currentTraits,
+                    inventory: updatedProtagonist.inventory,
+                    scars: updatedProtagonist.scars,
                 } : null
             }).returning();
 
