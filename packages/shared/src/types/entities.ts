@@ -28,8 +28,10 @@ export interface Scene {
     turnNumber: number;
     userAction: string;
     narration: string;
-    mood?: string;
-    protagonistId?: number;
+    mood?: string | null;
+    protagonistId?: number | null;
+    protagonistSnapshot?: Record<string, unknown> | null;
+    createdAt?: string
 }
 
 export interface Story {
@@ -101,4 +103,25 @@ export interface Analytics {
         content: string;
         createdAt: string;
     }>
+}
+
+export interface StreamCompleteData {
+    scene: {
+        sceneId: number;
+        protagonistId?: number | null;
+        mood?: string | null;
+        createdAt: string;
+    };
+    protagonistSnapshot?: Record<string, unknown> | null;
+    protagonistUpdates?: {
+        health?: number | null;
+        energy?: number | null;
+        location?: string | null;
+        addTraits?: string[] | null;
+        removeTraits?: string[] | null;
+        addInventory?: string[] | null;
+        removeInventory?: string[] | null;
+        addScars?: string[] | null
+    } | null;
+    echoPlanted: boolean;
 }

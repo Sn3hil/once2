@@ -2,14 +2,14 @@ import { db, eq } from "@once/database";
 import { protagonists } from "@once/database/schema";
 
 interface ProtagonistUpdates {
-    health?: number;
-    energy?: number;
-    location?: string;
-    addTraits?: string[];
-    removeTraits?: string[];
-    addInventory?: string[];
-    removeInventory?: string[];
-    addScars?: string[];
+    health?: number | null;
+    energy?: number | null;
+    location?: string | null;
+    addTraits?: string[] | null;
+    removeTraits?: string[] | null;
+    addInventory?: string[] | null;
+    removeInventory?: string[] | null;
+    addScars?: string[] | null;
 }
 
 interface CurrentProtagonist {

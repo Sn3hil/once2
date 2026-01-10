@@ -19,30 +19,30 @@ import { scenes } from "@once/database";
 export interface ExtractedEntities {
     characters: Array<{
         name: string;
-        description?: string;
-        isNew?: boolean;
+        description?: string | null;
+        isNew?: boolean | null;
     }>;
     locations: Array<{
         name: string;
-        description?: string;
+        description?: string | null;
     }>;
     objects: Array<{
         name: string;
-        description?: string;
-        significance?: string;
-        ownedBy?: string
+        description?: string | null;
+        significance?: string | null;
+        ownedBy?: string | null
     }>;
     relationships: Array<{
         from: string;
         to: string;
         type: string;
-        reason?: string
+        reason?: string | null
     }>;
     events: Array<{
         description: string;
         who: string[];
-        where?: string;
-        causedBy?: string;
+        where?: string | null;
+        causedBy?: string | null;
     }>;
 }
 

@@ -1,4 +1,8 @@
 import neo4j, { Driver, Session } from "neo4j-driver";
+import { config } from "dotenv";
+import { resolve } from "path";
+
+config({ path: resolve(process.cwd(), ".env") })
 
 function createDriver(): Driver {
     const uri = process.env.NEO4J_URI || process.env.NEO4J_URL || "bolt://localhost:7687";
@@ -16,7 +20,7 @@ function getSession(): Session {
 
 export interface GraphCharacter {
     name: string,
-    description?: string;
+    description?: string | null;
     storyId: number;
     introducedAt: number
 }
@@ -26,7 +30,7 @@ export interface GraphRelationship {
     to: string;
     type: string;
     since: number;
-    reason?: string
+    reason?: string | null
 }
 
 export interface GraphEvent {
@@ -35,13 +39,13 @@ export interface GraphEvent {
     storyId: number
     sceneId: number;
     who: string[];
-    where?: string;
-    causedBy?: string;
+    where?: string | null;
+    causedBy?: string | null;
 }
 
 export interface GraphLocation {
     name: string,
-    description?: string,
+    description?: string | null,
     storyId: number;
     firstVisitedAt: number
 }
@@ -50,8 +54,8 @@ export interface GraphObject {
     name: string,
     description: string,
     storyId: number;
-    significance?: string;
-    ownedBy?: string
+    significance?: string | null;
+    ownedBy?: string | null
 }
 
 export async function storeCharacter(character: GraphCharacter) {

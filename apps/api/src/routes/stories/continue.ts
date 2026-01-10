@@ -12,6 +12,7 @@ import { storySceneMemory, buildContext } from "@/services/memory";
 import { evaluateDeferredCharacters, markCharacterIntroduced } from "@/services/deferred";
 import { requireAuth } from "@/middleware/auth";
 import { extractEntities } from "@/services/extraction";
+import { StreamCompleteData } from "@once/shared";
 
 const continueRouter = new Hono();
 
@@ -276,10 +277,6 @@ continueRouter.post("/:id/continue/stream", requireAuth, async (c) => {
                 introducedCharacters: triggeredCharacters.map(c => ({ name: c.name, description: c.description, role: c.role }))
             });
 
-            for await (const chunk of fakeStream(response.narration, 25)) {
-                await stream.writeSSE({ data: chunk, event: "narration" });
-            }
-
             const newTurnNumber = (story.turnCount || 0) + 1;
 
             if (activeProtagonist && response.protagonistUpdates) {
@@ -334,16 +331,36 @@ continueRouter.post("/:id/continue/stream", requireAuth, async (c) => {
                 );
             }
 
-            extractCodexEntries(storyId, response.narration).catch(console.error);
+            for await (const chunk of fakeStream(response.narration, 25)) {
+                await stream.writeSSE({ data: chunk, event: "narration" });
+            }
+
+            const completeData: StreamCompleteData = {
+                scene: {
+                    sceneId: newScene.id,
+                    protagonistId: newScene.protagonistId,
+                    mood: newScene.mood,
+                    createdAt: newScene.createdAt?.toISOString(),
+                },
+                protagonistSnapshot: newScene.protagonistSnapshot,
+                protagonistUpdates: response.protagonistUpdates,
+                echoPlanted: !!response.echoPlanted,
+            };
 
             await stream.writeSSE({
                 event: "complete",
-                data: JSON.stringify({
-                    sceneId: newScene.id,
-                    protagonistUpdates: response.protagonistUpdates,
-                    echoPlanted: !!response.echoPlanted,
-                }),
+                data: JSON.stringify(completeData),
             });
+
+            try {
+                extractCodexEntries(storyId, response.narration).catch(console.error);
+                await stream.writeSSE({
+                    event: "codex",
+                    data: JSON.stringify({ complete: true })
+                })
+            } catch (err) {
+                console.error("Codex extraction failed:", err);
+            }
         } catch (err) {
             console.error("Streaming error:", err);
             await stream.writeSSE({ event: "error", data: "Failed to generate story" });

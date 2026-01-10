@@ -2,11 +2,11 @@ import { db, eq } from "@once/database";
 import { codexEntries } from "@once/database/schema";
 import { generateStructured } from "./llm";
 import { buildCodexExtractionPrompt } from "@/prompts/codex";
-import { codexExtractionSchema } from "@once/shared/schemas";
+import { CodexExtractionResponse, codexExtractionSchema } from "@once/shared/schemas";
 
 export async function extractCodexEntries(storyId: number, narration: string) {
     const existingEntries = await db.query.codexEntries.findMany({
-        where: eq(codexEntries.id, storyId)
+        where: eq(codexEntries.storyId, storyId)
     })
 
     const prompt = buildCodexExtractionPrompt({

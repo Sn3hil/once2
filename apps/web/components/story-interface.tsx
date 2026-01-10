@@ -16,11 +16,13 @@ export function StoryInterface({ storyId }: { storyId: string }) {
     const [story, setStory] = useState<Story | null>(null);
     const [scenes, setScenes] = useState<Scene[]>([]);
     const [codex, setCodex] = useState<CodexEntry[]>([]);
+    const [protagonists, setProtagonists] = useState<Protagonist[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isContinuing, setIsContinuing] = useState(false);
+    const [pendingScene, setPendingScene] = useState<{ userAction: string; narration: string } | null>(null);
 
-    const protagonist = story?.protagonist?.[0];
     const storyMode = story?.storyMode;
+    const activeProtagonist = protagonists.find(p => p.isActive) || null;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -30,7 +32,12 @@ export function StoryInterface({ storyId }: { storyId: string }) {
                 storiesApi.getCodex(storyId),
             ]);
 
-            if (storyRes.data) setStory(storyRes.data);
+            if (storyRes.data) {
+                setStory(storyRes.data);
+                if (storyRes.data.protagonist) {
+                    setProtagonists(storyRes.data.protagonist);
+                }
+            }
             if (scenesRes.data) setScenes(scenesRes.data);
             if (codexRes.data) setCodex(codexRes.data);
 
@@ -42,10 +49,53 @@ export function StoryInterface({ storyId }: { storyId: string }) {
 
     const handleContinue = async (action: string) => {
         setIsContinuing(true);
-        const response = await storiesApi.continue(storyId, action);
-        if (response.data) {
-            setScenes([...scenes, response.data.scene]);
-        }
+
+        setPendingScene({ userAction: action, narration: "" });
+
+        let streamedNarration = ""
+
+        await storiesApi.continueStream(storyId, action, (chunk) => {
+            streamedNarration += chunk;
+            setPendingScene({ userAction: action, narration: streamedNarration });
+        },
+            async (data) => {
+                const newScene: Scene = {
+                    id: data.scene.sceneId,
+                    storyId: parseInt(storyId),
+                    userAction: action,
+                    narration: streamedNarration,
+                    turnNumber: scenes.length + 1,
+                    mood: data.scene.mood,
+                    protagonistId: data.scene.protagonistId,
+                    createdAt: data.scene.createdAt
+                }
+
+                setScenes(prev => [...prev, newScene]);
+
+
+                if (data.protagonistSnapshot) {
+                    const snapshot = data.protagonistSnapshot;
+                    setProtagonists(prev => prev.map(p => p.isActive ? {
+                        ...p,
+                        health: (snapshot.health as number) ?? p.health,
+                        energy: (snapshot.energy as number) ?? p.energy,
+                        currentLocation: (snapshot.currentLocation as string) ?? p.currentLocation,
+                        currentTraits: (snapshot.currentTraits as string[]) ?? p.currentTraits,
+                        inventory: (snapshot.inventory as string[]) ?? p.inventory,
+                        scars: (snapshot.scars as string[]) ?? p.scars,
+                    } : p));
+                }
+
+                setPendingScene(null);
+            },
+            (codexData) => {
+                if (codexData.complete) {
+                    storiesApi.getCodex(storyId).then(res => {
+                        if (res.data) setCodex(res.data)
+                    })
+                }
+            }
+        )
         setIsContinuing(false);
     };
 
@@ -70,7 +120,7 @@ export function StoryInterface({ storyId }: { storyId: string }) {
                     <h1 className="text-lg text-foreground">{story?.title || "Loading..."}</h1>
                     <FontDropdown />
                 </div>
-                {storyMode === "protagonist" && protagonist && (
+                {storyMode === "protagonist" && activeProtagonist && (
                     <button
                         onClick={() => setShowProtagonist(true)}
                         className="lg:hidden text-muted hover:text-foreground cursor-pointer"
@@ -82,17 +132,17 @@ export function StoryInterface({ storyId }: { storyId: string }) {
 
             <div className="flex flex-1 overflow-hidden">
                 <aside className="hidden lg:block w-56 shrink-0 overflow-y-auto px-8 py-4 dotted-border-r">
-                    <CodexSidebar codex={codex} protagonistName={storyMode === "protagonist" ? protagonist?.name : undefined} />
+                    <CodexSidebar codex={codex} protagonistName={storyMode === "protagonist" ? activeProtagonist?.name : undefined} />
                 </aside>
 
                 <MobileDrawer className="py-4 px-8" open={showCodex} onClose={() => setShowCodex(false)} side="left">
-                    <CodexSidebar codex={codex} protagonistName={storyMode === "protagonist" ? protagonist?.name : undefined} />
+                    <CodexSidebar codex={codex} protagonistName={storyMode === "protagonist" ? activeProtagonist?.name : undefined} />
                 </MobileDrawer>
 
                 <main className="flex flex-1 flex-col overflow-hidden">
                     <div className="flex-1 overflow-y-auto px-8 py-6">
                         <div className="mx-auto max-w-3xl">
-                            <StoryNarration scenes={scenes} />
+                            <StoryNarration scenes={scenes} pendingScene={pendingScene} />
                         </div>
                     </div>
 
@@ -101,15 +151,15 @@ export function StoryInterface({ storyId }: { storyId: string }) {
                     </div>
                 </main>
 
-                {storyMode === "protagonist" && protagonist && (
+                {storyMode === "protagonist" && activeProtagonist && (
                     <aside className="hidden lg:block w-56 shrink-0 overflow-y-auto p-4 border-r-0 dotted-border-l">
-                        <ProtagonistSidebar protagonist={protagonist} />
+                        <ProtagonistSidebar protagonist={activeProtagonist} />
                     </aside>
                 )}
 
-                {storyMode === "protagonist" && protagonist && (
+                {storyMode === "protagonist" && activeProtagonist && (
                     <MobileDrawer className="py-4 px-8" open={showProtagonist} onClose={() => setShowProtagonist(false)} side="right">
-                        <ProtagonistSidebar protagonist={protagonist} />
+                        <ProtagonistSidebar protagonist={activeProtagonist} />
                     </MobileDrawer>
                 )}
             </div>
@@ -180,7 +230,7 @@ function ProtagonistSidebar({ protagonist }: { protagonist?: Protagonist }) {
     );
 }
 
-function StoryNarration({ scenes }: { scenes: Scene[] }) {
+function StoryNarration({ scenes, pendingScene }: { scenes: Scene[], pendingScene?: { userAction: string, narration: string } | null }) {
     return (
         <div className="space-y-6" data-lenis-prevent>
             {scenes.map((scene) => (
@@ -191,6 +241,14 @@ function StoryNarration({ scenes }: { scenes: Scene[] }) {
                     <div className="text-foreground whitespace-pre-line">{scene.narration}</div>
                 </div>
             ))}
+            {pendingScene && (
+                <div>
+                    <p className="text-accent italic mb-2">{pendingScene.userAction}</p>
+                    <div className="text-foreground whitespace-pre-line">
+                        {pendingScene.narration || <span className="text-muted">...</span>}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

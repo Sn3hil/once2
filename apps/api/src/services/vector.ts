@@ -1,5 +1,9 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
 import OpenAI from "openai";
+import { config } from "dotenv";
+import { resolve } from "path";
+
+config({ path: resolve(process.cwd(), ".env") })
 
 const COLLECTION_NAME = "once_scenes";
 const EMBEDDING_MODEL = "text-embedding-3-small";
@@ -58,7 +62,7 @@ export async function storeSceneVector(sceneId: string, narration: string, story
     await qdrant.upsert(COLLECTION_NAME, {
         points: [
             {
-                id: sceneId,
+                id: parseInt(sceneId),
                 vector,
                 payload: {
                     storyId: storyId.toString(),

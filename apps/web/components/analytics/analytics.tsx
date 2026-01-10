@@ -1,23 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { NavHeader } from "../nav-header";
 import { storiesApi } from "@/lib/api";
 import type { Analytics as AnalyticsData } from "@once/shared";
 import { ArrowUp, MessageSquare, GitFork, BookOpen } from "lucide-react";
-
-const mockData: AnalyticsData = {
-    totals: { upvotes: 24, notes: 5, forks: 3, published: 4 },
-    stories: [
-        { id: 1, title: "The Chapel at Midnight", upvotes: 12, notesCount: 2, forkCount: 1, turnCount: 45, createdAt: "2026-01-01" },
-        { id: 2, title: "Echoes of the Forgotten", upvotes: 8, notesCount: 1, forkCount: 2, turnCount: 32, createdAt: "2026-01-03" },
-        { id: 3, title: "A Throne of Ashes", upvotes: 4, notesCount: 2, forkCount: 0, turnCount: 18, createdAt: "2026-01-05" },
-    ],
-    recentNotes: [
-        { id: 1, storyId: 1, storyTitle: "The Chapel at Midnight", content: "Loved the twist at the end!", createdAt: "2026-01-06" },
-        { id: 2, storyId: 2, storyTitle: "Echoes of the Forgotten", content: "The protagonist's arc is compelling.", createdAt: "2026-01-05" },
-    ]
-};
 
 export function Analytics() {
     const [data, setData] = useState<AnalyticsData | null>(null);
@@ -25,9 +11,8 @@ export function Analytics() {
 
     useEffect(() => {
         const fetchAnalytics = async () => {
-            setData(mockData)
-            // const response = await storiesApi.getAnalytics();
-            // if (response.data) setData(response.data);
+            const response = await storiesApi.getAnalytics();
+            if (response.data) setData(response.data);
             setIsLoading(false);
         };
         fetchAnalytics();

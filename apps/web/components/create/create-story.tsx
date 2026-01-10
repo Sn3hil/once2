@@ -20,6 +20,7 @@ export function CreateStory() {
     const [narrativeStance, setNarrativeStance] = useState<NarrativeStance>("heroic");
     const [storyMode, setStoryMode] = useState<StoryMode>("protagonist");
     const [storyIdea, setStoryIdea] = useState("")
+    const [isCreating, setIsCreating] = useState(false);
 
     const [protagonistName, setProtagonistName] = useState("");
     const [protagonistLocation, setProtagonistLocation] = useState("");
@@ -57,10 +58,13 @@ export function CreateStory() {
             return;
         }
 
+        setIsCreating(true);
+
         const response = await storiesApi.create(result.data);
 
         if (response.error) {
             toast.error(response.error.message);
+            setIsCreating(false);
             return;
         }
 
@@ -192,14 +196,14 @@ export function CreateStory() {
 
                     <button
                         onClick={handleCreate}
-                        disabled={!isValid}
+                        disabled={!isValid || isCreating}
                         className={cn(
                             "w-full border border-line py-3 text-foreground transition-colors cursor-pointer",
                             "hover:border-foreground hover:bg-surface",
                             "disabled:cursor-not-allowed disabled:opacity-40"
                         )}
                     >
-                        Begin Story
+                        {isCreating ? "Crafting your story..." : "Begin Story"}
                     </button>
                 </div>
             </div>
