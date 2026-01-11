@@ -9,6 +9,7 @@ import { createStorySchema, suggestedTraits } from "@once/shared/schemas";
 import { NavHeader } from "../nav-header";
 import { toast } from "sonner";
 import { storiesApi } from "@/lib/api";
+import { ConstellationLoader } from "../loader";
 
 
 
@@ -77,6 +78,10 @@ export function CreateStory() {
 
     return (
         <>
+            {isCreating && (
+                <ConstellationLoader message="Crafting the beginning of your story..." />
+            )}
+
             <div className="min-h-screen bg-background">
                 <header className="dotted-border-b px-4 md:px-8 py-6">
                     <h1 className="text-2xl text-foreground">Begin a New Story</h1>

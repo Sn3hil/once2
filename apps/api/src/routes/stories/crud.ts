@@ -181,13 +181,9 @@ crudRouter.delete("/:id", requireAuth, async (c) => {
     const user = c.get("user");
     if (!user || story.userId !== user.id) return error(c, "FORBIDDEN", "You can only delete your own stories");
 
-    const [updated] = await db
-        .update(stories)
-        .set({ status: "abandoned" })
-        .where(eq(stories.id, id))
-        .returning();
+    await db.delete(stories).where(eq(stories.id, id))
 
-    return success(c, { message: "Story archived" });
+    return success(c, { message: "Story deleted" });
 });
 
 export default crudRouter;

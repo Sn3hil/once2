@@ -3,6 +3,7 @@ import { Pool } from "pg";
 import * as schema from "./schema"
 import * as authSchema from "./auth-schema"
 import { config } from "dotenv";
+import { resolve } from "path";
 
 config({ path: '../../.env' });
 

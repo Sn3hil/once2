@@ -7,6 +7,7 @@ import { BookOpen, User, Wand } from "lucide-react";
 import MobileDrawer from "./mobile-drawer";
 import { storiesApi } from "@/lib/api";
 import type { Story, Scene, Protagonist, CodexEntry } from "@once/shared";
+import { ConstellationLoader } from "./loader";
 
 
 export function StoryInterface({ storyId }: { storyId: string }) {
@@ -20,9 +21,15 @@ export function StoryInterface({ storyId }: { storyId: string }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isContinuing, setIsContinuing] = useState(false);
     const [pendingScene, setPendingScene] = useState<{ userAction: string; narration: string } | null>(null);
+    // const [showEntryLoader, setShowEntryLoader] = useState(true);
 
     const storyMode = story?.storyMode;
     const activeProtagonist = protagonists.find(p => p.isActive) || null;
+
+    // useEffect(() => {
+    //     const timer = setTimeout(() => setShowEntryLoader(false), 300);
+    //     return () => clearTimeout(timer);
+    // }, []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -108,62 +115,64 @@ export function StoryInterface({ storyId }: { storyId: string }) {
     }
 
     return (
-        <div className="flex h-screen flex-col bg-background">
-            <header className="flex h-14 items-center justify-center dotted-border-b gap-2 md:gap-4">
-                <button
-                    onClick={() => setShowCodex(true)}
-                    className="lg:hidden text-muted hover:text-foreground cursor-pointer"
-                >
-                    <BookOpen className="size-5" />
-                </button>
-                <div className="flex items-center gap-5">
-                    <h1 className="text-lg text-foreground">{story?.title || "Loading..."}</h1>
-                    <FontDropdown />
-                </div>
-                {storyMode === "protagonist" && activeProtagonist && (
+        <>
+            <div className="flex h-screen flex-col bg-background">
+                <header className="flex h-14 items-center justify-center dotted-border-b gap-2 md:gap-4">
                     <button
-                        onClick={() => setShowProtagonist(true)}
+                        onClick={() => setShowCodex(true)}
                         className="lg:hidden text-muted hover:text-foreground cursor-pointer"
                     >
-                        <User className="size-5" />
+                        <BookOpen className="size-5" />
                     </button>
-                )}
-            </header>
-
-            <div className="flex flex-1 overflow-hidden">
-                <aside className="hidden lg:block w-56 shrink-0 overflow-y-auto px-8 py-4 dotted-border-r">
-                    <CodexSidebar codex={codex} protagonistName={storyMode === "protagonist" ? activeProtagonist?.name : undefined} />
-                </aside>
-
-                <MobileDrawer className="py-4 px-8" open={showCodex} onClose={() => setShowCodex(false)} side="left">
-                    <CodexSidebar codex={codex} protagonistName={storyMode === "protagonist" ? activeProtagonist?.name : undefined} />
-                </MobileDrawer>
-
-                <main className="flex flex-1 flex-col overflow-hidden">
-                    <div className="flex-1 overflow-y-auto px-8 py-6">
-                        <div className="mx-auto max-w-3xl">
-                            <StoryNarration scenes={scenes} pendingScene={pendingScene} />
-                        </div>
+                    <div className="flex items-center gap-5">
+                        <h1 className="text-lg text-foreground">{story?.title || "Loading..."}</h1>
+                        <FontDropdown />
                     </div>
+                    {storyMode === "protagonist" && activeProtagonist && (
+                        <button
+                            onClick={() => setShowProtagonist(true)}
+                            className="lg:hidden text-muted hover:text-foreground cursor-pointer"
+                        >
+                            <User className="size-5" />
+                        </button>
+                    )}
+                </header>
 
-                    <div className="dotted-line-horizontal p-4">
-                        <ActionInput onSubmit={handleContinue} isLoading={isContinuing} />
-                    </div>
-                </main>
-
-                {storyMode === "protagonist" && activeProtagonist && (
-                    <aside className="hidden lg:block w-56 shrink-0 overflow-y-auto p-4 border-r-0 dotted-border-l">
-                        <ProtagonistSidebar protagonist={activeProtagonist} />
+                <div className="flex flex-1 overflow-hidden">
+                    <aside className="hidden lg:block w-56 shrink-0 overflow-y-auto px-8 py-4 dotted-border-r">
+                        <CodexSidebar codex={codex} protagonistName={storyMode === "protagonist" ? activeProtagonist?.name : undefined} />
                     </aside>
-                )}
 
-                {storyMode === "protagonist" && activeProtagonist && (
-                    <MobileDrawer className="py-4 px-8" open={showProtagonist} onClose={() => setShowProtagonist(false)} side="right">
-                        <ProtagonistSidebar protagonist={activeProtagonist} />
+                    <MobileDrawer className="py-4 px-8" open={showCodex} onClose={() => setShowCodex(false)} side="left">
+                        <CodexSidebar codex={codex} protagonistName={storyMode === "protagonist" ? activeProtagonist?.name : undefined} />
                     </MobileDrawer>
-                )}
-            </div>
-        </div >
+
+                    <main className="flex flex-1 flex-col overflow-hidden">
+                        <div className="flex-1 overflow-y-auto px-8 py-6">
+                            <div className="mx-auto max-w-3xl">
+                                <StoryNarration scenes={scenes} pendingScene={pendingScene} />
+                            </div>
+                        </div>
+
+                        <div className="dotted-line-horizontal p-4">
+                            <ActionInput onSubmit={handleContinue} isLoading={isContinuing} />
+                        </div>
+                    </main>
+
+                    {storyMode === "protagonist" && activeProtagonist && (
+                        <aside className="hidden lg:block w-56 shrink-0 overflow-y-auto p-4 border-r-0 dotted-border-l">
+                            <ProtagonistSidebar protagonist={activeProtagonist} />
+                        </aside>
+                    )}
+
+                    {storyMode === "protagonist" && activeProtagonist && (
+                        <MobileDrawer className="py-4 px-8" open={showProtagonist} onClose={() => setShowProtagonist(false)} side="right">
+                            <ProtagonistSidebar protagonist={activeProtagonist} />
+                        </MobileDrawer>
+                    )}
+                </div>
+            </div >
+        </>
     );
 }
 

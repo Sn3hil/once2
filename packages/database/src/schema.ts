@@ -51,7 +51,7 @@ export const stories = pgTable("stories", {
 
 export const protagonists = pgTable("protagonists", {
     id: serial("id").primaryKey(),
-    storyId: integer("story_id").notNull(),
+    storyId: integer("story_id").notNull().references(() => stories.id, { onDelete: "cascade" }),
 
     name: varchar("name", { length: 100 }).notNull(),
     description: text("description"),
@@ -72,7 +72,7 @@ export const protagonists = pgTable("protagonists", {
 
 export const scenes = pgTable("scenes", {
     id: serial("id").primaryKey(),
-    storyId: integer("story_id").notNull(),
+    storyId: integer("story_id").notNull().references(() => stories.id, { onDelete: "cascade" }),
 
     turnNumber: integer("turn_number").notNull(),
     userAction: text("user_action").notNull(),
@@ -96,7 +96,7 @@ export const echoStatusEnum = pgEnum("echo_status", [
 
 export const echoes = pgTable("echoes", {
     id: serial("id").primaryKey(),
-    storyId: integer("story_id").notNull(),
+    storyId: integer("story_id").notNull().references(() => stories.id, { onDelete: "cascade" }),
 
     sourceSceneId: integer("source_scene_id").notNull(),
     description: text("description").notNull(),
@@ -129,7 +129,7 @@ export const vaultCharacters = pgTable("vault_characters", {
 
 export const deferredCharacters = pgTable("deferred_characters", {
     id: serial("id").primaryKey(),
-    storyId: integer("story_id").notNull(),
+    storyId: integer("story_id").notNull().references(() => stories.id, { onDelete: "cascade" }),
 
     vaultCharacterId: integer("vault_character_id"),
     name: varchar("name", { length: 100 }).notNull(),
@@ -155,7 +155,7 @@ export const codexEntryTypeEnum = pgEnum("codex_entry_type", [
 
 export const codexEntries = pgTable("codex_entries", {
     id: serial("id").primaryKey(),
-    storyId: integer("story_id").notNull(),
+    storyId: integer("story_id").notNull().references(() => stories.id, { onDelete: "cascade" }),
 
     entryType: codexEntryTypeEnum("entry_type").notNull(),
     name: varchar("name", { length: 255 }).notNull(),
@@ -177,7 +177,7 @@ export const codexEntries = pgTable("codex_entries", {
 
 export const storyUpvotes = pgTable("story_upvotes", {
     id: serial("id").primaryKey(),
-    storyId: integer("story_id").notNull(),
+    storyId: integer("story_id").notNull().references(() => stories.id, { onDelete: "cascade" }),
     userId: text("user_id").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
@@ -187,7 +187,7 @@ export const storyUpvotes = pgTable("story_upvotes", {
 
 export const storySuggestions = pgTable("story_suggestions", {
     id: serial("id").primaryKey(),
-    storyId: integer("story_id").notNull(),
+    storyId: integer("story_id").notNull().references(() => stories.id, { onDelete: "cascade" }),
     userId: text("user_id").notNull(),
     content: text("content").notNull(),
     isPublic: boolean("is_public").default(false).notNull(),

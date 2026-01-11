@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { NavHeader } from "../nav-header";
 import { storiesApi } from "@/lib/api";
 import type { Story } from "@once/shared";
+import { toast } from "sonner";
 
 
 export function Library() {
@@ -22,6 +23,11 @@ export function Library() {
 
         fetchStories();
     }, []);
+
+    const handleDelete = (id: number) => {
+        setStories(prev => prev.filter(s => s.id !== id));
+        toast.success("Story Deleted");
+    }
 
     const filteredStories = stories.filter((s) =>
         filter === "all" ? true : s.status === filter
@@ -54,7 +60,7 @@ export function Library() {
                 ) : (
                     <div className="grid grid-cols-1 gap-4 p-4 md:p-8 md:grid-cols-2 lg:grid-cols-3">
                         {filteredStories.map((story) => (
-                            <StoryCard key={story.id} story={story} />
+                            <StoryCard key={story.id} story={story} onDelete={handleDelete} />
                         ))}
                     </div>
                 )}

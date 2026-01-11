@@ -28,8 +28,11 @@ export const storiesApi = {
         method: "POST",
         body: JSON.stringify({ action })
     }),
+
     getCodex: (id: string) => apiClient<CodexEntry[]>(`/api/stories/${id}/codex`),
     getAnalytics: () => apiClient<Analytics>('/api/stories/analytics'),
+
+    delete: (id: string) => apiClient<{ message: string }>(`/api/stories/${id}`, { method: 'DELETE' }),
 
 
     continueStream: (
