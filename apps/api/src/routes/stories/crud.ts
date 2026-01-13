@@ -1,14 +1,10 @@
 import { Hono } from "hono";
 import { db, eq, desc, and } from "@once/database";
-import { stories, protagonists, scenes } from "@once/database/schema";
+import { stories } from "@once/database/schema";
 import { success, error, paginated } from "@/lib/response";
-import { createStorySchema, openSceneSchema } from "@once/shared/schemas";
-import { buildSystemPrompt } from "@/prompts/system";
-import { buildInitializePrompt } from "@/prompts/initialize";
-import { generateStructured } from "@/services/llm";
-import { storySceneMemory } from "@/services/memory";
-import { extractEntities } from "@/services/extraction";
+import { createStorySchema } from "@once/shared/schemas";
 import { requireAuth, type AuthVariables } from "@/middleware/auth";
+import { createStory } from "@once/core";
 
 const crudRouter = new Hono<{ Variables: AuthVariables }>();
 
@@ -92,73 +88,16 @@ crudRouter.post("/", requireAuth, async (c) => {
     const { title, description, genre, narrativeStance, storyMode, storyIdea, protagonist } = parsed.data;
     const user = c.get("user")!;
 
-    const [newStory] = await db.insert(stories).values({
-        userId: user.id,
-        title,
-        description,
-        genre,
-        narrativeStance,
-        storyMode
-    }).returning();
-
-    let protagonistId: number | undefined;
-
-    if (storyMode === "protagonist" && protagonist) {
-        const [newProtagonist] = await db.insert(protagonists).values({
-            storyId: newStory.id,
-            name: protagonist.name,
-            description: protagonist.description,
-            currentLocation: protagonist.location,
-            baseTraits: protagonist.traits,
-            currentTraits: protagonist.traits
-        }).returning();
-
-        protagonistId = newProtagonist.id;
-    }
-
-    const systemPrompt = buildSystemPrompt(narrativeStance, storyMode);
-    const initPrompt = buildInitializePrompt({ title, genre, stance: narrativeStance, mode: storyMode, plot: storyIdea, protagonist });
-
     try {
-        const openingScene = await generateStructured(systemPrompt, initPrompt, openSceneSchema, "opening_scene");
-
-        if (!protagonist && openingScene.protagonistGenerated) {
-            const gen = openingScene.protagonistGenerated;
-            const [newProtagonist] = await db.insert(protagonists).values({
-                storyId: newStory.id,
-                name: gen.name,
-                description: gen.description,
-                currentLocation: gen.location,
-                baseTraits: gen.traits,
-                currentTraits: gen.traits
-            }).returning();
-            protagonistId = newProtagonist.id;
-        }
-
-        await db.insert(scenes).values({
-            storyId: newStory.id,
-            turnNumber: 1,
-            userAction: "[STORY_START]",
-            narration: openingScene.narration,
-            protagonistId,
-        });
-
-        extractEntities(openingScene.narration, protagonist?.name || "protagonist")
-            .then(entities => storySceneMemory(
-                "1",
-                openingScene.narration,
-                newStory.id,
-                1,
-                entities
-            ))
-            .catch(console.error);
-
-        const storyWithRelations = await db.query.stories.findFirst({
-            where: eq(stories.id, newStory.id),
-            with: {
-                protagonist: true,
-                scenes: true,
-            },
+        const { storyWithRelations } = await createStory({
+            user,
+            title,
+            description,
+            genre,
+            narrativeStance,
+            storyMode,
+            storyIdea,
+            protagonist
         });
 
         return success(c, storyWithRelations, 201);

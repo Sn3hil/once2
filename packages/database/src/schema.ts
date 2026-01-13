@@ -1,5 +1,5 @@
 import { pgTable, serial, text, varchar, integer, boolean, timestamp, json, pgEnum, primaryKey, unique } from "drizzle-orm/pg-core";
-import { relations } from 'drizzle-orm';
+import { relations, type InferSelectModel } from 'drizzle-orm';
 import { user } from "./auth-schema"
 
 export const narrativeStanceEnum = pgEnum("narrative_stance", [
