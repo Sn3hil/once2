@@ -4,6 +4,7 @@ import { storySceneMemory } from "@/memory";
 import { db, eq, protagonists, scenes, stories } from "@once/database";
 import { protagonistSchema, scenesSchema, storySchema } from "@once/database/types";
 import { openSceneSchema } from "@once/shared";
+import { DebugCollector } from "@/debug";
 
 export interface CreateStoryProps {
     user: {
@@ -36,7 +37,7 @@ interface CreateStoryResult {
     };
 }
 
-export async function createStory(props: CreateStoryProps): Promise<CreateStoryResult> {
+export async function createStory(props: CreateStoryProps, collector?: DebugCollector): Promise<CreateStoryResult> {
 
     const { user, title, description, genre, narrativeStance, storyMode, storyIdea, protagonist } = props;
 
@@ -48,6 +49,9 @@ export async function createStory(props: CreateStoryProps): Promise<CreateStoryR
         narrativeStance,
         storyMode
     }).returning();
+
+    // debug collector
+    collector?.add('db', 'insert:stories', newStory);
 
     let protagonistId: number | undefined;
 
@@ -67,7 +71,13 @@ export async function createStory(props: CreateStoryProps): Promise<CreateStoryR
     const systemPrompt = buildSystemPrompt(narrativeStance, storyMode);
     const initPrompt = buildInitializePrompt({ title, genre, stance: narrativeStance, mode: storyMode, plot: storyIdea, protagonist });
 
+    //debug collector
+    collector?.add('llm', 'prompts', { systemPrompt, initPrompt });
+
     const openingScene = await generateStructured(systemPrompt, initPrompt, openSceneSchema, "opening_scene");
+
+    //debug collector
+    collector?.add('llm', 'openingScene', openingScene);
 
     if (!protagonist && openingScene.protagonistGenerated) {
         const gen = openingScene.protagonistGenerated;
@@ -79,7 +89,11 @@ export async function createStory(props: CreateStoryProps): Promise<CreateStoryR
             baseTraits: gen.traits,
             currentTraits: gen.traits
         }).returning();
+
         protagonistId = newProtagonist.id;
+
+        //debug collector
+        collector?.add('db', 'insert:protagonists', newProtagonist);
     }
 
     await db.insert(scenes).values({
@@ -89,6 +103,9 @@ export async function createStory(props: CreateStoryProps): Promise<CreateStoryR
         narration: openingScene.narration,
         protagonistId,
     });
+
+    //debug collector
+    collector?.add('db', 'insert:scenes', { storyId: newStory.id, turnNumber: 1 })
 
     extractEntities(openingScene.narration, protagonist?.name || "protagonist")
         .then(entities => storySceneMemory(

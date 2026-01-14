@@ -19,7 +19,8 @@
   "packageManager": "bun@1.3.3",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "debug/*"
   ],
   "dependencies": {
     "better-auth": "^1.4.9"

@@ -16,6 +16,7 @@ import {
 } from "./graph";
 import { db, eq, desc } from "@once/database";
 import { scenes } from "@once/database";
+import { DebugCollector } from "@/debug";
 
 // export interface ExtractedEntities {
 //     characters: Array<{
@@ -52,54 +53,73 @@ export async function storySceneMemory(
     narration: string,
     storyId: number,
     turnNumber: number,
-    entities: ExtractedEntities
+    entities: ExtractedEntities,
+    collector?: DebugCollector
 ) {
     try {
         await storeSceneVector(sceneId, narration, storyId);
 
         for (const character of entities.characters) {
-            await storeCharacter({
+
+            const store = {
                 name: character.name,
                 description: character.description,
                 storyId,
                 introducedAt: turnNumber
-            })
+            };
+
+            await storeCharacter(store)
+
+            collector?.add('graph', 'storingCharacters', store);
         }
 
         for (const location of entities.locations) {
-            await storeLocation({
+
+            const store = {
                 name: location.name,
                 description: location.description,
                 storyId,
                 firstVisitedAt: turnNumber
-            })
+            };
+
+            await storeLocation(store)
+
+            collector?.add('graph', 'storingLocations', store);
         }
 
         for (const object of entities.objects) {
-            await storeObject({
+
+            const store = {
                 name: object.name,
                 description: object.description || "",
                 storyId,
                 significance: object.significance,
                 ownedBy: object.ownedBy,
-            });
+            };
+
+            await storeObject(store);
+
+            collector?.add('graph', 'storingObjects', store);
         }
 
         for (const relation of entities.relationships) {
+            const store = {
+                from: relation.from,
+                to: relation.to,
+                type: relation.type.toUpperCase().replace(/\s+/g, "_"),
+                since: turnNumber,
+                reason: relation.reason,
+            };
             await storeRelationship(
-                {
-                    from: relation.from,
-                    to: relation.to,
-                    type: relation.type.toUpperCase().replace(/\s+/g, "_"),
-                    since: turnNumber,
-                    reason: relation.reason,
-                },
+                store,
                 storyId
             );
+
+            collector?.add('graph', 'storingRelationShip', store);
         }
 
         for (const event of entities.events) {
-            await storeEvent({
+            const store = {
                 id: `${sceneId}-${event.description.slice(0, 20)}`,
                 description: event.description,
                 storyId,
@@ -107,7 +127,9 @@ export async function storySceneMemory(
                 who: event.who,
                 where: event.where,
                 causedBy: event.causedBy,
-            });
+            };
+            await storeEvent(store);
+            collector?.add('graph', 'storingEvents', store);
         }
     } catch (error) {
         console.error("Error storing scene memory:", error);

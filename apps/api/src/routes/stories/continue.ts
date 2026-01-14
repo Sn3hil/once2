@@ -111,7 +111,7 @@ continueRouter.post("/:id/continue/stream", requireAuth, async (c) => {
             });
 
             try {
-                extractCodexEntries(storyId, response.narration).catch(console.error);
+                await extractCodexEntries(storyId, response.narration)
                 await stream.writeSSE({
                     event: "codex",
                     data: JSON.stringify({ complete: true })

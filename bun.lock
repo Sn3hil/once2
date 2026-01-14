@@ -76,6 +76,18 @@
         "typescript": "^5",
       },
     },
+    "debug/api": {
+      "name": "@once/debug",
+      "version": "0.0.1",
+      "dependencies": {
+        "@once/core": "workspace:*",
+        "@once/database": "workspace:*",
+        "hono": "^4.7.5",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+    },
     "packages/core": {
       "name": "@once/core",
       "version": "0.0.1",
@@ -388,6 +400,8 @@
     "@once/core": ["@once/core@workspace:packages/core"],
 
     "@once/database": ["@once/database@workspace:packages/database"],
+
+    "@once/debug": ["@once/debug@workspace:debug/api"],
 
     "@once/shared": ["@once/shared@workspace:packages/shared"],
 

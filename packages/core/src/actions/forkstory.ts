@@ -1,3 +1,4 @@
+import { DebugCollector } from "@/debug";
 import { db, eq, protagonists, scenes, stories } from "@once/database";
 import { protagonistSchema, scenesSchema, storySchema } from "@once/database/types";
 
@@ -24,7 +25,7 @@ interface ForkStoryResult {
     }
 }
 
-export async function forkStory(props: ForkStoryProps): Promise<ForkStoryResult> {
+export async function forkStory(props: ForkStoryProps, collector?: DebugCollector): Promise<ForkStoryResult> {
 
     const { originalStory, sceneId, storyId, user, forkScene } = props;
 
@@ -42,6 +43,9 @@ export async function forkStory(props: ForkStoryProps): Promise<ForkStoryResult>
         turnCount: forkScene.turnNumber
     }).returning();
 
+    // debug collector
+    collector?.add('db', 'insert:stories', forkedStory);
+
     let protagonistId: number | undefined;
     if (protagonistSnapshot) {
         const [newProtagonist] = await db.insert(protagonists).values({
@@ -58,6 +62,9 @@ export async function forkStory(props: ForkStoryProps): Promise<ForkStoryResult>
             isActive: true,
         }).returning();
         protagonistId = newProtagonist.id;
+
+        // debug collector
+        collector?.add('db', 'insert:protagonists', newProtagonist);
     }
 
     const scenesToCopy = await db.query.scenes.findMany({
@@ -77,6 +84,8 @@ export async function forkStory(props: ForkStoryProps): Promise<ForkStoryResult>
             mood: scene.mood,
             protagonistId,
         });
+
+        collector?.add('db', 'insert:scenes', { turnNumber: scene.turnNumber });
     }
 
     const storyWithRelations = await db.query.stories.findFirst({

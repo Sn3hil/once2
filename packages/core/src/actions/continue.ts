@@ -4,6 +4,7 @@ import { updateProtagonistState } from "@/protagonist";
 import { evaluateDeferredCharacters, evaluateEchoes, generateContinuation, markCharacterIntroduced, plantEcho, resolveEchoes } from "@/story";
 import { db, eq, scenes, stories } from "@once/database";
 import { deferredCharactersSchema, echoesSchema, protagonistSchema, scenesSchema, storySchema } from "@once/database/types";
+import { DebugCollector } from "@/debug";
 
 
 interface ContinueStoryProps {
@@ -43,7 +44,7 @@ interface ContinueStoryResult {
 }
 
 
-export async function continueStory(props: ContinueStoryProps): Promise<ContinueStoryResult> {
+export async function continueStory(props: ContinueStoryProps, collector?: DebugCollector): Promise<ContinueStoryResult> {
 
     const { story, userAction } = props;
     const storyId = story.id;
@@ -68,6 +69,9 @@ export async function continueStory(props: ContinueStoryProps): Promise<Continue
         recentNarration: lastScene?.narration || "",
     });
 
+    // debug collector
+    collector?.add('llm', 'triggeredEchoes', triggeredEchoes);
+
     const pendingCharacters = story.deferredCharacters.filter(c => !c.introduced);
     const triggeredCharacters = await evaluateDeferredCharacters({
         storyId,
@@ -86,13 +90,23 @@ export async function continueStory(props: ContinueStoryProps): Promise<Continue
         recentNarration: lastScene?.narration || "",
     });
 
+    //debug collector
+    collector?.add('llm', 'triggeredCharacters', triggeredCharacters);
+
     const memoryContext = await buildContext(
         storyId,
         userAction,
         activeProtagonist?.name || "protagonist",
         activeProtagonist?.currentLocation
     );
+
+    // debug collector
+    collector?.add('llm', 'memoryContext', memoryContext);
+
     const factualKnowledge = memoryContext.similarScenes.map(s => s.narration);
+
+    // debug collector
+    // collector?.add('context', '', factualKnowledge);
 
     const response = await generateContinuation({
         narrativeStance: story.narrativeStance,
@@ -116,6 +130,9 @@ export async function continueStory(props: ContinueStoryProps): Promise<Continue
         factualKnowledge,
         introducedCharacters: triggeredCharacters.map(c => ({ name: c.name, description: c.description, role: c.role }))
     });
+
+    // debug collector
+    collector?.add('llm', 'continuation', response);
 
     const newTurnNumber = (story.turnCount || 0) + 1;
 
@@ -144,6 +161,9 @@ export async function continueStory(props: ContinueStoryProps): Promise<Continue
         } : null,
     }).returning();
 
+    // debug collector
+    collector?.add('db', 'insert:scenes', newScene);
+
     await db.update(stories)
         .set({
             turnCount: newTurnNumber,
@@ -151,21 +171,29 @@ export async function continueStory(props: ContinueStoryProps): Promise<Continue
         })
         .where(eq(stories.id, storyId));
 
+    collector?.add('db', 'update:stories', { storyId, turnCount: newTurnNumber });
+
     for (const char of triggeredCharacters) {
         await markCharacterIntroduced(char.id, newScene.id);
     }
 
-    extractEntities(response.narration, activeProtagonist?.name || "protagonist")
-        .then(entities => storySceneMemory(
-            newScene.id.toString(),
-            response.narration,
-            storyId,
-            newTurnNumber,
-            entities
-        ))
-        .catch(console.error);
+    const entities = await extractEntities(response.narration, activeProtagonist?.name || "protagonist")
+    // .then(entities => storySceneMemory(
+    //     newScene.id.toString(),
+    //     response.narration,
+    //     storyId,
+    //     newTurnNumber,
+    //     entities
+    // ))
+    // .catch(console.error);
 
-    await resolveEchoes(triggeredEchoes.map(e => e.id), newScene.id);
+
+    // debug collector
+    collector?.add('llm', 'extractedEntities', entities);
+
+    await storySceneMemory(newScene.id.toString(), response.narration, storyId, newTurnNumber, entities, collector);
+
+    await resolveEchoes(triggeredEchoes.map(e => e.id), newScene.id, collector);
 
     if (response.echoPlanted) {
         await plantEcho(
@@ -176,7 +204,7 @@ export async function continueStory(props: ContinueStoryProps): Promise<Continue
         );
     }
 
-    extractCodexEntries(storyId, response.narration).catch(console.error);
+    await extractCodexEntries(storyId, response.narration, collector)
 
     return {
         scene: newScene,

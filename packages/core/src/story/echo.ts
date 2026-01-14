@@ -3,6 +3,7 @@ import { echoes } from "@once/database/schema";
 import { generateStructured } from "../llm/generate";
 import { buildEchoEvalPrompt } from "../llm/prompts/echo";
 import { echoEvalSchema } from "@once/shared/schemas";
+import { DebugCollector } from "@/debug";
 
 interface EchoEvalContext {
     storyId: number;
@@ -55,7 +56,7 @@ export async function plantEcho(
     })
 }
 
-export async function resolveEchoes(echoIds: number[], resolvedAtSceneId: number) {
+export async function resolveEchoes(echoIds: number[], resolvedAtSceneId: number, collector?: DebugCollector) {
     if (echoIds.length === 0) return;
     await db.update(echoes)
         .set({
@@ -64,4 +65,6 @@ export async function resolveEchoes(echoIds: number[], resolvedAtSceneId: number
             updatedAt: new Date(),
         })
         .where(inArray(echoes.id, echoIds));
+
+    collector?.add('db', 'storingResolvedEchoes', { status: 'resolved', resolvedAtSceneId });
 }

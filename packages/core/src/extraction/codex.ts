@@ -3,8 +3,9 @@ import { codexEntries } from "@once/database/schema";
 import { generateStructured } from "../llm/generate";
 import { buildCodexExtractionPrompt } from "../llm/prompts/codex";
 import { CodexExtractionResponse, codexExtractionSchema } from "@once/shared/schemas";
+import { DebugCollector } from "@/debug";
 
-export async function extractCodexEntries(storyId: number, narration: string) {
+export async function extractCodexEntries(storyId: number, narration: string, collector?: DebugCollector) {
     const existingEntries = await db.query.codexEntries.findMany({
         where: eq(codexEntries.storyId, storyId)
     })
@@ -14,12 +15,18 @@ export async function extractCodexEntries(storyId: number, narration: string) {
         existingEntries: existingEntries.map(e => ({ name: e.name, entryType: e.entryType }))
     })
 
+    // debug collector
+    collector?.add('llm', 'codexExtractionPrompt', prompt);
+
     const extraction = await generateStructured(
         "You extract notable entities from story narration for an encyclopedia.",
         prompt,
         codexExtractionSchema,
         "codex_extraction"
     );
+
+    // debug collector
+    collector?.add('llm', 'generatedStructuredOutput', extraction);
 
     if (extraction.newEntries.length > 0) {
         await db.insert(codexEntries).values(
@@ -30,6 +37,9 @@ export async function extractCodexEntries(storyId: number, narration: string) {
                 summary: entry.summary
             }))
         )
+
+        // debug collector
+        collector?.add('db', 'insert:extractedCodexEntries', { storyId });
     }
 
     if (extraction.updates && extraction.updates.length > 0) {
@@ -44,6 +54,9 @@ export async function extractCodexEntries(storyId: number, narration: string) {
                         updatedAt: new Date(),
                     })
                     .where(eq(codexEntries.id, existing.id));
+
+                // debug collector
+                collector?.add('db', 'updateCodexEntries', { summary: `${existing.summary}\n\n${update.newInfo}` });
             }
         }
     }

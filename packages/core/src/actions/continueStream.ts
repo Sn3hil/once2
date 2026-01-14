@@ -1,3 +1,4 @@
+import { DebugCollector } from "@/debug";
 import { extractEntities } from "@/extraction";
 import { buildContext, storySceneMemory } from "@/memory";
 import { updateProtagonistState } from "@/protagonist";
@@ -46,7 +47,7 @@ interface ContinueStoryStreamResult {
     }
 }
 
-export async function continueStream(props: ContinueStoryStreamProps): Promise<ContinueStoryStreamResult> {
+export async function continueStream(props: ContinueStoryStreamProps, collector?: DebugCollector): Promise<ContinueStoryStreamResult> {
 
     const { story, userAction } = props;
     const storyId = story.id;
@@ -63,6 +64,9 @@ export async function continueStream(props: ContinueStoryStreamProps): Promise<C
         userAction,
         recentNarration: lastScene?.narration || ""
     })
+
+    // debug collector
+    collector?.add('db', 'triggeredEchoes', triggeredEchoes)
 
     const pendingCharacters = story.deferredCharacters.filter(c => !c.introduced);
     const triggeredCharacters = await evaluateDeferredCharacters({
@@ -82,12 +86,19 @@ export async function continueStream(props: ContinueStoryStreamProps): Promise<C
         recentNarration: lastScene?.narration || "",
     });
 
+    // debug collector
+    collector?.add('llm', 'triggeredCharacters', triggeredCharacters);
+
     const memoryContext = await buildContext(
         storyId,
         userAction,
         activeProtagonist?.name || "protagonist",
         activeProtagonist?.currentLocation
     );
+
+    // debug collector
+    collector?.add('db', 'memoryContext', memoryContext);
+
     const factualKnowledge = memoryContext.similarScenes.map(s => s.narration);
 
     const response = await generateContinuation({
@@ -112,6 +123,8 @@ export async function continueStream(props: ContinueStoryStreamProps): Promise<C
         factualKnowledge,
         introducedCharacters: triggeredCharacters.map(c => ({ name: c.name, description: c.description, role: c.role }))
     });
+
+    collector?.add('llm', 'continuation', response);
 
     const newTurnNumber = (story.turnCount || 0) + 1;
 
@@ -140,25 +153,36 @@ export async function continueStream(props: ContinueStoryStreamProps): Promise<C
         } : null
     }).returning();
 
+    // debug collector
+    collector?.add('db', 'insert:scenes', newScene);
+
     await db.update(stories)
         .set({ turnCount: newTurnNumber, updatedAt: new Date() })
         .where(eq(stories.id, storyId));
+
+    // debug collector
+    collector?.add('db', 'update:stories', { storyId, turnCount: newTurnNumber });
 
     for (const char of triggeredCharacters) {
         await markCharacterIntroduced(char.id, newScene.id);
     }
 
-    extractEntities(response.narration, activeProtagonist?.name || "protagonist")
-        .then(entities => storySceneMemory(
-            newScene.id.toString(),
-            response.narration,
-            storyId,
-            newTurnNumber,
-            entities
-        ))
-        .catch(console.error);
+    const entities = await extractEntities(response.narration, activeProtagonist?.name || "protagonist")
+    // .then(entities => storySceneMemory(
+    //     newScene.id.toString(),
+    //     response.narration,
+    //     storyId,
+    //     newTurnNumber,
+    //     entities
+    // ))
+    // .catch(console.error);
 
-    await resolveEchoes(triggeredEchoes.map(e => e.id), newScene.id);
+    // debug collector
+    collector?.add('llm', 'extractedEntities', entities);
+
+    await storySceneMemory(newScene.id.toString(), response.narration, storyId, newTurnNumber, entities, collector);
+
+    await resolveEchoes(triggeredEchoes.map(e => e.id), newScene.id, collector);
 
     if (response.echoPlanted) {
         await plantEcho(
