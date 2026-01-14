@@ -113,21 +113,12 @@ function CreateStoryForm({ onSubmit, isLoading }: { onSubmit: (p: Record<string,
                     </div>
                     <Field label="Name" value={protName} onChange={setProtName} placeholder="Character name" />
                     <Field label="Location" value={protLocation} onChange={setProtLocation} placeholder="Starting location" />
-                    {storyMode === 'protagonist' && (
-                        <>
-                            <div className="border-t border-border pt-3 mt-3">
-                                <span className="text-xs text-muted">Protagonist</span>
-                            </div>
-                            <Field label="Name" value={protName} onChange={setProtName} placeholder="Character name" />
-                            <Field label="Location" value={protLocation} onChange={setProtLocation} placeholder="Starting location" />
-                            <Field
-                                label="Traits (comma-separated)"
-                                value={protTraits}
-                                onChange={setProtTraits}
-                                placeholder="brave, curious, stubborn"
-                            />
-                        </>
-                    )}
+                    <Field
+                        label="Traits (comma-separated)"
+                        value={protTraits}
+                        onChange={setProtTraits}
+                        placeholder="brave, curious, stubborn"
+                    />
                 </>
             )}
 

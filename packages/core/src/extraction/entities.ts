@@ -1,5 +1,4 @@
-import OpenAI from "openai";
-import { zodTextFormat } from "openai/helpers/zod";
+import { generateStructured } from "@/llm";
 import {
     extractedEntitiesSchema,
     extractionSystemPrompt,
@@ -7,25 +6,17 @@ import {
     type ExtractedEntities
 } from "../llm/prompts/extract";
 
-const openai = new OpenAI();
 
 export async function extractEntities(
     narration: string,
     protagonistName: string
 ): Promise<ExtractedEntities> {
     try {
-        const response = await openai.responses.parse({
-            model: "gpt-4o-mini",
-            input: [
-                { role: "system", content: extractionSystemPrompt },
-                { role: "user", content: buildExtractionPrompt(narration, protagonistName) },
-            ],
-            text: {
-                format: zodTextFormat(extractedEntitiesSchema, "extracted_entities"),
-            },
-        });
+        const prompt = buildExtractionPrompt(narration, protagonistName);
 
-        return response.output_parsed ?? {
+        const response = await generateStructured(extractionSystemPrompt, prompt, extractedEntitiesSchema, "extracted_entities");
+
+        return response ?? {
             characters: [],
             locations: [],
             objects: [],

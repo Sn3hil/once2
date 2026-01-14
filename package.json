@@ -23,6 +23,7 @@
     "debug/*"
   ],
   "dependencies": {
+    "@google/genai": "^1.35.0",
     "better-auth": "^1.4.9"
   }
 }

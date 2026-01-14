@@ -1,53 +1,14 @@
-import OpenAI from "openai";
-import { config } from "dotenv";
-import { resolve, dirname } from "path";
-import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
-import { fileURLToPath } from "url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-config({ path: resolve(__dirname, "../../../../.env") });
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-})
-
-const DEFAULT_MODEL = "gpt-4o-mini";
+import { llm } from "./providers";
 
 export async function* streamNarration(instructions: string, input: string): AsyncGenerator<string> {
-    const stream = await openai.responses.create({
-        model: DEFAULT_MODEL,
-        instructions,
-        input,
-        stream: true
-    })
-
-    for await (const event of stream) {
-        if (event.type === "response.output_text.delta") {
-            yield event.delta;
-        }
-    }
+    yield* llm.streamText(instructions, input);
 }
 
 export async function generateResponse(instructions: string, input: string): Promise<string> {
-    const response = await openai.responses.create({
-        model: DEFAULT_MODEL,
-        instructions,
-        input
-    })
-
-    return response.output_text;
+    return llm.generateText(instructions, input)
 }
 
 export async function generateStructured<T extends z.ZodTypeAny>(instructions: string, input: string, schema: T, schemaName: string = "response"): Promise<z.infer<T>> {
-    const response = await openai.responses.parse({
-        model: DEFAULT_MODEL,
-        instructions,
-        input,
-        text: { format: zodTextFormat(schema, schemaName) }
-    });
-
-    return response.output_parsed;
+    return llm.generateStructured(instructions, input, schema, schemaName);
 }
-
-export { openai, DEFAULT_MODEL };

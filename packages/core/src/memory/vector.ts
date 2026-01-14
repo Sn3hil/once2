@@ -1,15 +1,14 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
-import OpenAI from "openai";
 import { config } from "dotenv";
-import { resolve } from "path";
+import { dirname, resolve } from "path";
+import { fileURLToPath } from "url";
+import { embedder } from "@/llm/providers";
 
-config({ path: resolve(process.cwd(), ".env") })
+const __dirname = dirname(fileURLToPath(import.meta.url));
+config({ path: resolve(__dirname, "../../../../.env") });
 
 const COLLECTION_NAME = "once_scenes";
-const EMBEDDING_MODEL = "text-embedding-3-small";
-const EMBEDDING_DIMENSIONS = 1536;
-
-const openai = new OpenAI();
+const EMBEDDING_DIMENSIONS = embedder.dimensions;
 
 function createQdrantClient(): QdrantClient {
     if (process.env.MEMORY_MODE === "cloud") {
@@ -46,12 +45,7 @@ async function checkCollection(): Promise<void> {
 }
 
 async function embed(text: string): Promise<number[]> {
-    const response = await openai.embeddings.create({
-        model: EMBEDDING_MODEL,
-        input: text
-    })
-
-    return response.data[0].embedding;
+    return embedder.embed(text);
 }
 
 export async function storeSceneVector(sceneId: string, narration: string, storyId: number): Promise<void> {

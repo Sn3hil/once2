@@ -107,15 +107,26 @@ export async function createStory(props: CreateStoryProps, collector?: DebugColl
     //debug collector
     collector?.add('db', 'insert:scenes', { storyId: newStory.id, turnNumber: 1 })
 
-    extractEntities(openingScene.narration, protagonist?.name || "protagonist")
-        .then(entities => storySceneMemory(
-            "1",
-            openingScene.narration,
-            newStory.id,
-            1,
-            entities
-        ))
-        .catch(console.error);
+    const entities = await extractEntities(openingScene.narration, protagonist?.name || "protagonist")
+    // .then(entities => storySceneMemory(
+    //     "1",
+    //     openingScene.narration,
+    //     newStory.id,
+    //     1,
+    //     entities
+    // ))
+    // .catch(console.error);
+
+    collector?.add('llm', 'extractedEntities', entities);
+
+    await storySceneMemory(
+        "1",
+        openingScene.narration,
+        newStory.id,
+        1,
+        entities,
+        collector
+    )
 
     const storyWithRelations = await db.query.stories.findFirst({
         where: eq(stories.id, newStory.id),
