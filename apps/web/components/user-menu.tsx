@@ -1,55 +1,98 @@
 "use client";
 
-import { Origami, User, LogOut } from "lucide-react";
-import { signOut, useSession } from "@/lib/auth-client";
+import { useState } from "react";
+import { usePathname } from "next/navigation";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Origami,
+  User,
+  Home,
+  BookOpen,
+  Compass,
+  PlusCircle,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { RadialMenu, RadialMenuItem } from "@/components/ui/radial-menu";
+
+const navItems: RadialMenuItem[] = [
+  {
+    title: "Home",
+    icon: (className: string) => (
+      <Home className={cn("h-full w-full", className)} />
+    ),
+    href: "/",
+  },
+  {
+    title: "Library",
+    icon: (className: string) => (
+      <BookOpen className={cn("h-full w-full", className)} />
+    ),
+    href: "/library",
+  },
+  {
+    title: "Discover",
+    icon: (className: string) => (
+      <Compass className={cn("h-full w-full", className)} />
+    ),
+    href: "/discover",
+  },
+  {
+    title: "Create",
+    icon: (className: string) => (
+      <PlusCircle className={cn("h-full w-full", className)} />
+    ),
+    href: "/create",
+  },
+  {
+    title: "Profile",
+    icon: (className: string) => (
+      <User className={cn("h-full w-full", className)} />
+    ),
+    href: "/profile",
+  },
+];
 
 export function UserMenu() {
-    const { data: session } = useSession();
+  const pathname = usePathname();
+  const [isRadialOpen, setIsRadialOpen] = useState(false);
 
-    const handleSignOut = async () => {
-        await signOut();
-        window.location.href = "/auth/login";
-    };
+  const toggleRadialMenu = () => {
+    setIsRadialOpen(!isRadialOpen);
+  };
 
-    return (
-        <div className="fixed top-4 right-4 md:top-8 md:right-8 z-50">
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <button className="flex items-center justify-center w-12 h-12 rounded-full bg-surface border border-line hover:border-accent transition-colors cursor-pointer focus:outline-none">
-                        <Origami className="w-5 h-5 text-accent" />
-                    </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 border-accent">
-                    {session?.user && (
-                        <>
-                            <div className="px-2 py-1.5 text-sm">
-                                <p className="font-medium text-foreground">Author</p>
-                                <p className="text-xs text-muted truncate">{session.user.name}</p>
-                            </div>
-                            <DropdownMenuSeparator />
-                        </>
-                    )}
-                    <DropdownMenuItem className="cursor-pointer">
-                        <User className="mr-2 h-4 w-4" />
-                        Profile
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        onClick={handleSignOut}
-                        className="cursor-pointer"
-                    >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Sign Out
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
-    );
+  const closeRadialMenu = () => {
+    setIsRadialOpen(false);
+  };
+
+  return (
+    <div className="fixed top-4 right-4 md:top-8 md:right-8 z-50">
+      {/* Origami button */}
+      <button
+        onClick={toggleRadialMenu}
+        className={cn(
+          "relative flex items-center justify-center w-12 h-12 rounded-full",
+          "bg-surface border border-line hover:border-accent",
+          "transition-colors cursor-pointer focus:outline-none z-10",
+          isRadialOpen && "border-accent",
+        )}
+      >
+        <Origami
+          className={cn(
+            "w-5 h-5",
+            isRadialOpen ? "text-accent" : "text-accent",
+          )}
+        />
+      </button>
+
+      {/* Radial navigation menu */}
+      <RadialMenu
+        items={navItems}
+        isOpen={isRadialOpen}
+        onClose={closeRadialMenu}
+        currentPath={pathname}
+      />
+
+      {/* User dropdown - positioned below the origami button when needed */}
+      {/* TODO: Integrate user menu items into radial menu later */}
+    </div>
+  );
 }
