@@ -3,6 +3,12 @@ import { db, desc, eq, scenes, stories } from "@once/database";
 import { Hono } from "hono";
 import { upgradeWebSocket, websocket } from "hono/bun";
 import { createStorySchema } from "../../../packages/shared/src/schemas/story";
+import { config } from 'dotenv'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+config({ path: resolve(__dirname, '../../../.env') });
 
 const app = new Hono();
 

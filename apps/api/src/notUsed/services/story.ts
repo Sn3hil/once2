@@ -1,7 +1,7 @@
 import { generateStructured } from "./llm";
-import { buildSystemPrompt } from "@/prompts/system";
-import { buildInitializePrompt } from "@/prompts/initialize";
-import { buildContinuePrompt } from "@/prompts/continue";
+import { buildSystemPrompt } from "@/notUsed/prompts/system";
+import { buildInitializePrompt } from "@/notUsed/prompts/initialize";
+import { buildContinuePrompt } from "@/notUsed/prompts/continue";
 import { openSceneSchema, sceneResponseSchema } from "@once/shared/schemas";
 import type { NarrativeStance, StoryMode } from "@once/shared/schemas";
 

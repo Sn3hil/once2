@@ -1,7 +1,7 @@
 import { db, eq } from "@once/database";
 import { codexEntries } from "@once/database/schema";
 import { generateStructured } from "./llm";
-import { buildCodexExtractionPrompt } from "@/prompts/codex";
+import { buildCodexExtractionPrompt } from "@/notUsed/prompts/codex";
 import { CodexExtractionResponse, codexExtractionSchema } from "@once/shared/schemas";
 
 export async function extractCodexEntries(storyId: number, narration: string) {

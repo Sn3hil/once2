@@ -2,7 +2,7 @@ import { defineConfig } from "drizzle-kit";
 import { config } from "dotenv";
 import { resolve } from "path";
 
-config({ path: resolve(process.cwd(), ".env") }); // process.cwd is not correct here , change it
+config({ path: "../../.env" }); // process.cwd is not correct here , change it
 
 export default defineConfig({
     dialect: "postgresql",

@@ -5,7 +5,7 @@ import {
     extractionSystemPrompt,
     buildExtractionPrompt,
     type ExtractedEntities
-} from "@/prompts/extract";
+} from "@/notUsed/prompts/extract";
 
 const openai = new OpenAI();
 

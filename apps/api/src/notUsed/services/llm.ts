@@ -1,10 +1,13 @@
 import OpenAI from "openai";
 import { config } from "dotenv";
-import { resolve } from "path";
+import { dirname, resolve } from "path";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
+import { fileURLToPath } from "url";
 
-config({ path: resolve(process.cwd(), ".env") });
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+config({ path: resolve(process.cwd(), ".env") }); // replace process.cwd() with __dirname and use relative path
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY

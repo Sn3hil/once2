@@ -1,7 +1,7 @@
 import { db, eq, inArray } from "@once/database";
 import { echoes } from "@once/database/schema";
 import { generateStructured } from "./llm";
-import { buildEchoEvalPrompt } from "@/prompts/echo";
+import { buildEchoEvalPrompt } from "@/notUsed/prompts/echo";
 import { echoEvalSchema } from "@once/shared/schemas";
 
 interface EchoEvalContext {

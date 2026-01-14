@@ -9,6 +9,7 @@
     "dependencies": {
         "@once/core": "workspace:*",
         "@once/database": "workspace:*",
+        "dotenv": "^17.2.3",
         "hono": "^4.7.5"
     },
     "devDependencies": {

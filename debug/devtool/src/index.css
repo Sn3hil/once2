@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0d0d0d;
+  --surface: #1a1a1a;
+  --surface-2: #242424;
+  --foreground: #e5e5e5;
+  --muted: #737373;
+  --accent: #3b82f6;
+  --success: #22c55e;
+  --warning: #eab308;
+  --error: #ef4444;
+  --border: #2e2e2e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-border: var(--border);
+  --font-mono: 'JetBrains Mono', 'SF Mono', Monaco, monospace;
+}
+
+@layer base {
+  html {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-mono);
+    font-size: 14px;
+  }
+
+  * {
+    border-color: var(--border);
+  }
+}
+
+/* Debug tag colors */
+.tag-db {
+  background: #3b82f6;
+}
+
+.tag-llm {
+  background: #a855f7;
+}
+
+.tag-vector {
+  background: #22c55e;
+}
+
+.tag-graph {
+  background: #f97316;
+}
+
+.tag-context {
+  background: #ec4899;
+}

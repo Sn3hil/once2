@@ -1,7 +1,7 @@
 import { db, eq } from "@once/database";
 import { deferredCharacters } from "@once/database/schema";
 import { generateStructured } from "./llm";
-import { buildDeferredCharPrompt } from "@/prompts/deferred";
+import { buildDeferredCharPrompt } from "@/notUsed/prompts/deferred";
 import { deferredCharEvalSchema } from "@once/shared/schemas";
 
 interface DeferredCharEvalContext {
